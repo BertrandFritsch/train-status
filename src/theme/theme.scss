@@ -1,5 +1,5 @@
 * {
-  box-sizing: border-box;
+//  box-sizing: border-box;
 }
 
 html, body, #root {
@@ -14,4 +14,21 @@ html, body, #root {
 #root {
   font-family: "Myriad Set Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: #333;
+}
+
+.line-selector-host {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 100%;
+}
+
+.line-selector-host > .react-autosuggest__container {
+  margin: 30px -400px 0;
+  width: 800px;
+}
+
+.line-selector-host > .react-autosuggest__container--open {
+  height: calc(100% - 30px);
 }

@@ -1,13 +1,14 @@
 import { connect } from 'react-redux';
 import { State } from './reducers';
-import StatusView from './StatusView';
+import MapView from './MapView';
 
 export default connect(
   (state: { status: State }) => ({
-    data: state.status.data
+    lineData: state.status.data.lineData,
+    stopPoints: state.status.data.stopPoints
   }),
   undefined,
   (stateProps, dispatchProps) => ({
     ...stateProps,
     ...dispatchProps
-  }))(StatusView);
+  }))(MapView);

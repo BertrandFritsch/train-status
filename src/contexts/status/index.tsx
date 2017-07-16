@@ -1,4 +1,4 @@
-import StatusView from './_module_/StatusViewContainer';
+import StatusView from './_module_/StatusView';
 import reducers, { State } from './_module_/reducers';
 import sagas from './_module_/sagas';
 
