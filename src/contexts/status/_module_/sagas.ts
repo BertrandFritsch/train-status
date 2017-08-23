@@ -1,4 +1,4 @@
-import { throttle, call, take, put, PutEffect, TakeEffect, Pattern } from 'redux-saga/effects';
+import { throttle, call, take, put, PutEffect, TakeEffect } from 'redux-saga/effects';
 
 import callAPI, { CallAPIResult, CallAPIResultType } from '../../../server/callAPI';
 import ActionTypes, { StatusAction } from './actionTypes';
@@ -62,6 +62,7 @@ function* loadLineData() {
   for (;;) {
 
     const action = yield statusActionTake(ActionTypes.SUGGESTION_LINE_REQUESTED);
+    yield statusActionPut({ type: ActionTypes.LINE_DATA_RESET });
 
     // get the line data
     const apiCall: CallAPIResult<SNCFLineData> = yield call(callAPI, lineURI(action.payload.id), { headers: { Authorization: authToken } });
@@ -88,6 +89,7 @@ function* loadStopPoints() {
   for (;;) {
 
     const action = yield statusActionTake(ActionTypes.SUGGESTION_LINE_REQUESTED);
+    yield statusActionPut({ type: ActionTypes.STOP_POINTS_RESET });
 
     // get the stop points
     const apiCall: CallAPIResult<SNCFStopPoints> = yield call(callAPI, stopPointsURI(action.payload.id), { headers: { Authorization: authToken } });
