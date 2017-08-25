@@ -1,0 +1,30 @@
+﻿[
+  {
+    "day": "Sunday",
+    "weight": 1
+  },
+  {
+    "day": "Monday",
+    "weight": 10
+  },
+  {
+    "day": "Tuesday",
+    "weight": 10
+  },
+  {
+    "day": "Wednesday",
+    "weight": 7
+  },
+  {
+    "day": "Thursday",
+    "weight": 10
+  },
+  {
+    "day": "Friday",
+    "weight": 9
+  },
+  {
+    "day": "Saturday",
+    "weight": 2
+  }
+]

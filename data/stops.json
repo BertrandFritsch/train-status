@@ -1,0 +1,98 @@
+﻿[
+  {
+    "id": "stop_point:OIF:SP:8738286:800:L",
+    "name": "Gare de Versailles Rive Droite",
+    "weightStepIn": 6,
+    "weightStepOut": 0
+  },
+  {
+    "id": "stop_point:OIF:SP:8738287:800:L",
+    "name": "Gare de Montreuil",
+    "weightStepIn": 3,
+    "weightStepOut": 0
+  },
+  {
+    "id": "stop_point:OIF:SP:8738288:800:L",
+    "name": "Gare de Viroflay Rive Droite",
+    "weightStepIn": 3,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738233:800:L",
+    "name": "Gare de Chaville Rive Droite",
+    "weightStepIn": 3,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738234:800:L",
+    "name": "Gare de Sevres Ville d'Avray",
+    "weightStepIn": 3,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738235:800:L",
+    "name": "Gare de Saint-Cloud",
+    "weightStepIn": 4,
+    "weightStepOut": 2
+  },
+  {
+    "id": "stop_point:OIF:SP:8738236:800:L",
+    "name": "Gare du Val d'Or",
+    "weightStepIn": 2,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738237:800:L",
+    "name": "Gare de Suresnes Mont Valerien",
+    "weightStepIn": 3,
+    "weightStepOut": 2
+  },
+  {
+    "id": "stop_point:OIF:SP:8738238:800:L",
+    "name": "Gare de Puteaux",
+    "weightStepIn": 2,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738221:800:L",
+    "name": "Gare de la Défense",
+    "weightStepIn": 5,
+    "weightStepOut": 13
+  },
+  {
+    "id": "stop_point:OIF:SP:8738220:800:L",
+    "name": "Gare de Courbevoie",
+    "weightStepIn": 2,
+    "weightStepOut": 1
+  },
+  {
+    "id": "stop_point:OIF:SP:8738200:800:L",
+    "name": "Gare de Becon les Bruyères",
+    "weightStepIn": 2,
+    "weightStepOut": 3
+  },
+  {
+    "id": "stop_point:OIF:SP:8738113:800:L",
+    "name": "Gare d'Asnières",
+    "weightStepIn": 3,
+    "weightStepOut": 2
+  },
+  {
+    "id": "stop_point:OIF:SP:8738112:800:L",
+    "name": "Gare de Clichy Levallois",
+    "weightStepIn": 3,
+    "weightStepOut": 2
+  },
+  {
+    "id": "stop_point:OIF:SP:8738111:800:L",
+    "name": "Pont Cardinet",
+    "weightStepIn": 3,
+    "weightStepOut": 2
+  },
+  {
+    "id": "stop_point:OIF:SP:8738400:800:L",
+    "name": "Gare Saint-Lazare",
+    "weightStepIn": 0,
+    "weightStepOut": -1
+  }
+]
