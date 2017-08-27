@@ -18,7 +18,7 @@ interface State {
 
 export default class StationSelector extends React.PureComponent<Props, State> {
   state = {
-    value: 'RER A'
+    value: ''
   };
 
   onChange = (newValue: string) => {
@@ -33,7 +33,7 @@ export default class StationSelector extends React.PureComponent<Props, State> {
     );
 
     const inputProps = {
-      placeholder: 'Ligne',
+      placeholder: 'Ligne ou Station',
       value: this.state.value,
       onChange: (_: any, change: Autosuggest.ChangeEvent) => this.onChange(change.newValue)
     };

@@ -1,5 +1,6 @@
 import { connect } from 'react-redux';
-import { State } from './reducers';
+import { State, StopPoint } from './reducers';
+import ActionTypes, { Dispatch } from './actionTypes';
 import MapView from './MapView';
 
 export default connect(
@@ -7,7 +8,9 @@ export default connect(
     lineData: state.status.data.lineData,
     stopPoints: state.status.data.stopPoints
   }),
-  undefined,
+  (dispatch: Dispatch<State>) => ({
+    onStopPointSelected: (stopPoint: StopPoint): void => dispatch({ type: ActionTypes.STOP_POINT_SELECTED, payload: stopPoint })
+  }),
   (stateProps, dispatchProps) => ({
     ...stateProps,
     ...dispatchProps

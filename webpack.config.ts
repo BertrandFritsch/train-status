@@ -75,8 +75,8 @@ config = {
   },
 
   resolve: {
-    // Add '.ts' and '.tsx' as resolvable extensions.
-    extensions: [ '.ts', '.tsx', '.js', '.json' ]
+    // resolvable extensions.
+    extensions: [ '.ts', '.tsx', '.js' ]
   },
 
   module: {
@@ -101,7 +101,7 @@ config = {
          * css-loader makes any urls within the project part of our dependency graph
          * and the style-loader puts a style tag for the CSS in our HTML.
          */
-        test: /\.scss$/,
+        test: /\.s?css$/,
         use: [ 'style-loader', 'css-loader', 'sass-loader' ]
       },
       {
@@ -116,6 +116,10 @@ config = {
             }
           }
         ]
+      },
+      {
+        test: /\.json$/,
+        loader: 'json-loader'
       }
     ]
   }

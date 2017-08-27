@@ -1,7 +1,7 @@
 import { throttle, call, take, put, PutEffect, TakeEffect } from 'redux-saga/effects';
 
 import callAPI, { CallAPIResult, CallAPIResultType } from '../../../server/callAPI';
-import ActionTypes, { StatusAction } from './actionTypes';
+import ActionTypes, { LoginAction } from './actionTypes';
 
 // const line = { id: 'line:OIF:810:AOIF741', name: 'RER A' }; // RER A
 const line = { id: 'line:OIF:800:LOIF742', name: 'Transilien L' }; // Ligne L
@@ -11,7 +11,7 @@ const stopPointsURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf
 const authToken = '500e0590-34d8-45bc-8081-2da6fd3b7755';
 
 // character-typed put function
-const statusActionPut = (action: StatusAction): PutEffect<StatusAction> => put(action);
+const statusActionPut = (action: LoginAction): PutEffect<LoginAction> => put(action);
 const statusActionTake = <StatusAction>(pattern: ActionTypes): TakeEffect => take(pattern);
 
 interface SNCFLines {
@@ -121,7 +121,7 @@ export default function* () {
   yield [
     throttle(500, ActionTypes.SUGGESTION_LINES_REQUESTED, fetchLines),
     call(loadLineData),
-    call(loadStopPoints) //,
-    // call(initStatus)
+    call(loadStopPoints)
+//    call(initStatus)
   ];
 }

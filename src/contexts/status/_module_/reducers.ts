@@ -1,5 +1,26 @@
+import * as moment from 'moment';
+
 import { StatusAction } from './actionTypes';
 import ActionTypes from './actionTypes';
+
+const STOP_POINT_VRD = {
+  id: 'stop_point:OIF:SP:8738288:800:L',
+  name: 'Gare de Viroflay Rive Droite',
+  coord: [ 48.805493, 2.16852]
+};
+
+export const enum PeriodType {
+  DATE = 'DATE',
+  WEEK = 'WEEK',
+  MONTH = 'MONTH',
+  YEAR = 'YEAR',
+  FREQUENCY = 'FREQUENCY'
+}
+
+export interface Period {
+  type: PeriodType,
+  value: string | number | Date | null
+}
 
 export interface SuggestionLine {
   id: string,
@@ -13,10 +34,13 @@ export interface LineData {
   coordinates: Array<Array<[ number, number ]>>
 }
 
-export type StopPoints = Array<{
+export type StopPoint = {
+  id: string,
   name: string,
   coord: number[]
-}>;
+}
+
+export type StopPoints = Array<StopPoint>;
 
 export interface StatusData {
   lines: SuggestionLines,
@@ -24,8 +48,14 @@ export interface StatusData {
   stopPoints: StopPoints
 }
 
+export interface SelectedStopPoint {
+  stopPoint: StopPoint | null,
+  period: Period
+}
+
 export interface State {
   data: StatusData,
+  selectedStopPoint: SelectedStopPoint,
   error: Error | null
 }
 
@@ -37,6 +67,13 @@ const initialState: State = {
       coordinates: []
     },
     stopPoints: []
+  },
+  selectedStopPoint: {
+    stopPoint: STOP_POINT_VRD,
+    period: {
+      type: PeriodType.YEAR,
+      value: moment().year()
+    }
   },
   error: null
 };
@@ -66,6 +103,12 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
 
     case ActionTypes.DATA_LOAD_FAILED:
       return { ...locState, error: action.payload };
+
+    case ActionTypes.STOP_POINT_SELECTED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPoint: action.payload } };
+
+    case ActionTypes.PERIOD_SELECTED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, period: action.payload } };
 
     default:
       return locState;

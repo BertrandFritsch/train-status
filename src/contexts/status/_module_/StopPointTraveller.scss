@@ -1,0 +1,65 @@
+
+.stop-point-traveller-box {
+  display: flex;
+  margin: 20px;
+  width: 100%;
+  border: solid 1px black;
+}
+
+.stop-point-traveller-chart {
+  display: flex;
+  flex-grow: 1;
+}
+
+.stop-point-traveller-chart > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.stop-point-traveller-tools {
+  width: 400px;
+  margin: 20px;
+  padding-left: 20px;
+  border-left: #aaaaaa 1px solid;
+
+  label {
+    width: 90px;
+  }
+
+  select {
+    width: 168px;
+  }
+}
+
+.stop-point-traveller-tools-header {
+  margin-top: 20px;
+}
+
+.stop-point-traveller-chart path, .stop-point-traveller-chart line, .stop-point-traveller-chart text {
+  vector-effect: non-scaling-stroke;
+}
+
+.stop-point-traveller-chart .stop-point-traveller-data-bar {
+  fill: rgb(175, 8, 61)
+}
+
+.stop-point-traveller-chart .stop-point-traveller-axis-y .tick:not(:first-of-type) line {
+  stroke: #222222;
+  stroke-dasharray: 2,2;
+}
+
+.stop-point-traveller-chart text {
+  fill: #343434;
+  font-size: 0.72em;
+}
+
+.stop-point-traveller-selector-container {
+  margin: 5px;
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+
+  > *:not(:first-child) {
+    margin-left: 5px;
+  }
+}

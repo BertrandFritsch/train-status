@@ -2,11 +2,20 @@ import * as React from 'react';
 import * as d3 from 'd3';
 
 import './MapView.scss';
-import { LineData, StopPoints } from './reducers';
+import { LineData, StopPoints, StopPoint } from './reducers';
+
+const STOP_POINTS_RAYON: number = 4.5;
+const LAYER_MARGIN: number = STOP_POINTS_RAYON * 3;
 
 interface Props {
   lineData: LineData,
-  stopPoints: StopPoints
+  stopPoints: StopPoints,
+
+  onStopPointSelected: (stopPoint: StopPoint) => void
+}
+
+interface OverlayActions {
+  onStopPointSelected: (stopPoint: StopPoint) => void
 }
 
 function createMap(node: HTMLElement) {
@@ -18,6 +27,7 @@ function createMap(node: HTMLElement) {
 
   // center on France
   return new google.maps.Map(mapNode, {
+    clickableIcons: false, // disable all default clickable UI interactions
     zoom: 6,
     center: new google.maps.LatLng(47.46972222706748, 2.35472812402350850),
     mapTypeId: google.maps.MapTypeId.ROADMAP
@@ -59,10 +69,10 @@ function completeLineData(lineData: LineData) {
  */
 function completeStopPoints(stopPoints: StopPoints) {
   return {
-    data: stopPoints,
+    data: stopPoints,  // keep the initial structure to be able to detect when it has been changed
     latLngs: stopPoints.map(
       sp => ({
-        name: sp.name, // duplicate the name to easy the lookup
+        stopPoint: sp,
         latLng: new google.maps.LatLng(sp.coord[ 0 ], sp.coord[ 1 ])
       })
     )
@@ -70,9 +80,8 @@ function completeStopPoints(stopPoints: StopPoints) {
 }
 
 class LineOverlayView extends google.maps.OverlayView {
-  readonly STOP_POINTS_RAYON: number = 4.5;
-  readonly LAYER_MARGIN: number = this.STOP_POINTS_RAYON * 2;
 
+  readonly _actions: OverlayActions;
   _layerNode: Element | null;
   _bounds: google.maps.LatLngBounds;
 
@@ -89,11 +98,12 @@ class LineOverlayView extends google.maps.OverlayView {
   /**
    * The stop points
    */
-  _stopPoints: { data: StopPoints, latLngs: { name: string, latLng: google.maps.LatLng }[] };
+  _stopPoints: { data: StopPoints, latLngs: { stopPoint: StopPoint, latLng: google.maps.LatLng }[] };
 
-  constructor() {
+  constructor(actions: OverlayActions) {
     super();
 
+    this._actions = actions;
     this._bounds = new google.maps.LatLngBounds();
     this._lineData = { data: { color: '000000', coordinates: [] }, latLngs: [] };
     this._stopPoints = { data: [], latLngs: [] }
@@ -124,10 +134,10 @@ class LineOverlayView extends google.maps.OverlayView {
     const ne = projection.fromLatLngToDivPixel(this._bounds.getNorthEast());
 
     // extend the boundaries so that markers on the edge aren't cut in half
-    sw.x -= this.LAYER_MARGIN;
-    sw.y += this.LAYER_MARGIN;
-    ne.x += this.LAYER_MARGIN;
-    ne.y -= this.LAYER_MARGIN;
+    sw.x -= LAYER_MARGIN;
+    sw.y += LAYER_MARGIN;
+    ne.x += LAYER_MARGIN;
+    ne.y -= LAYER_MARGIN;
 
     return { ne, sw };
   }
@@ -217,7 +227,7 @@ class LineOverlayView extends google.maps.OverlayView {
       .enter()
       .append('circle')
       .attr('class', 'stop-point')
-      .attr('r', this.STOP_POINTS_RAYON)
+      .attr('r', STOP_POINTS_RAYON)
       .attr('cx', function (d) {
         const ld = projection.fromLatLngToDivPixel(d.latLng);
         return ld.x - layerCoords.sw.x;
@@ -229,7 +239,20 @@ class LineOverlayView extends google.maps.OverlayView {
       // .attr('stroke', `#${lineData.color}`)
       // .attr('stroke-width', 1.5)
       .attr('fill', 'node')
-      .append('title').text(d => d.name);
+      .on('mouseover', function(d) {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .attr('r', STOP_POINTS_RAYON * 3)
+      })
+      .on('mouseout', function(d) {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .attr('r', STOP_POINTS_RAYON)
+      })
+      .on('click', d => this._actions.onStopPointSelected(d.stopPoint))
+      .append('title').text(d => d.stopPoint.name);
   }
 
   // OverlayView interface
@@ -261,8 +284,8 @@ class LineOverlayView extends google.maps.OverlayView {
   }
 }
 
-function createOverlay(map: google.maps.Map) {
-  const overlay = new LineOverlayView();
+function createOverlay(map: google.maps.Map, actions: OverlayActions) {
+  const overlay = new LineOverlayView(actions);
 
   // Bind our overlay to the map…
   overlay.setMap(map);
@@ -274,20 +297,20 @@ export default class MapView extends React.PureComponent<Props> {
   _map: google.maps.Map;
   _overlay: LineOverlayView | null;
 
-  renderChart = (node: HTMLElement, lineData: LineData, stopPoints: StopPoints) => {
+  renderChart = (node: HTMLElement) => {
 
     // Create the Google Map…
     const map = this._map || (this._map = createMap(node));
 
-    const overlay = this._overlay || (this._overlay = createOverlay(map));
+    const overlay = this._overlay || (this._overlay = createOverlay(map, { onStopPointSelected: this.props.onStopPointSelected }));
 
-    overlay.updateLineData(lineData);
-    overlay.updateStopPoints(stopPoints);
+    overlay.updateLineData(this.props.lineData);
+    overlay.updateStopPoints(this.props.stopPoints);
   };
 
   render() {
     return (
-      <div style={ {height: '100%'} } ref={ node => node && this.renderChart(node, this.props.lineData, this.props.stopPoints) }/>
+      <div style={ {height: '100%'} } ref={ node => node && this.renderChart(node) }/>
     );
   }
 }
