@@ -6,7 +6,8 @@ import MapView from './MapView';
 export default connect(
   (state: StatusState) => ({
     lineData: state.status.data.lineData,
-    stopPoints: state.status.data.stopPoints
+    stopPoints: state.status.data.stopPoints,
+    selectedStopPoint: state.status.selectedStopPoint.stopPoint
   }),
   (dispatch: Dispatch<State>) => ({
     onStopPointSelected: (stopPoint: StopPoint): void => dispatch({ type: ActionTypes.STOP_POINT_SELECTED, payload: stopPoint })

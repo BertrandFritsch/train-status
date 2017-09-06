@@ -10,6 +10,7 @@ const LAYER_MARGIN: number = STOP_POINTS_RAYON * 3;
 interface Props {
   lineData: LineData,
   stopPoints: StopPoints,
+  selectedStopPoint: StopPoint,
 
   onStopPointSelected: (stopPoint: StopPoint) => void
 }
@@ -65,14 +66,16 @@ function completeLineData(lineData: LineData) {
  * Complete the stop points with the lats and the lngs
  *
  * @param {StopPoints} stopPoints
+ * @param {StopPoint} selectedStopPoint
  * @returns {{data: StopPoints; latLngs: {name; latLng: google.maps.LatLng}[]}}
  */
-function completeStopPoints(stopPoints: StopPoints) {
+function completeStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint) {
   return {
     data: stopPoints,  // keep the initial structure to be able to detect when it has been changed
     latLngs: stopPoints.map(
       sp => ({
         stopPoint: sp,
+        isSelected: selectedStopPoint && selectedStopPoint.id === sp.id,
         latLng: new google.maps.LatLng(sp.coord[ 0 ], sp.coord[ 1 ])
       })
     )
@@ -98,7 +101,12 @@ class LineOverlayView extends google.maps.OverlayView {
   /**
    * The stop points
    */
-  _stopPoints: { data: StopPoints, latLngs: { stopPoint: StopPoint, latLng: google.maps.LatLng }[] };
+  _stopPoints: { data: StopPoints, latLngs: { stopPoint: StopPoint, isSelected: boolean, latLng: google.maps.LatLng }[] };
+
+  /**
+   * The selected stop point
+   */
+  _selectedStopPoint: StopPoint | null;
 
   constructor(actions: OverlayActions) {
     super();
@@ -192,9 +200,9 @@ class LineOverlayView extends google.maps.OverlayView {
       .attr('fill', 'none');
   }
 
-  updateStopPoints(stopPoints: StopPoints) {
-    if (this._stopPoints && stopPoints !== this._stopPoints.data) {
-      this._stopPoints = completeStopPoints(stopPoints);
+  updateStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint) {
+    if (this._stopPoints && (stopPoints !== this._stopPoints.data || selectedStopPoint !== this._selectedStopPoint)) {
+      this._stopPoints = completeStopPoints(stopPoints, selectedStopPoint);
 
       if (this._hasDrawn) {
         this.updateBounds();
@@ -218,16 +226,10 @@ class LineOverlayView extends google.maps.OverlayView {
       .select('.stop-points')
       .selectAll('.stop-point')
       .data(this._stopPoints.latLngs)
-      .each(function (d) {
-        const ld = projection.fromLatLngToDivPixel(d.latLng);
-        return d3.select(this)
-                 .attr('cx', ld.x - layerCoords.sw.x)
-                 .attr('cy', ld.y - layerCoords.ne.y);
-      })
       .enter()
       .append('circle')
-      .attr('class', 'stop-point')
-      .attr('r', STOP_POINTS_RAYON)
+      .attr('class', d => (`stop-point${ d.isSelected ? ' stop-point-selected' : '' }`))
+      .attr('r', d => STOP_POINTS_RAYON * (d.isSelected ? 3 : 1))
       .attr('cx', function (d) {
         const ld = projection.fromLatLngToDivPixel(d.latLng);
         return ld.x - layerCoords.sw.x;
@@ -240,16 +242,20 @@ class LineOverlayView extends google.maps.OverlayView {
       // .attr('stroke-width', 1.5)
       .attr('fill', 'node')
       .on('mouseover', function(d) {
-        d3.select(this)
-          .transition()
-          .duration(300)
-          .attr('r', STOP_POINTS_RAYON * 3)
+        if (!d.isSelected) {
+          d3.select(this)
+            .transition()
+            .duration(300)
+            .attr('r', STOP_POINTS_RAYON * 3);
+        }
       })
       .on('mouseout', function(d) {
-        d3.select(this)
-          .transition()
-          .duration(300)
-          .attr('r', STOP_POINTS_RAYON)
+        if (!d.isSelected) {
+          d3.select(this)
+            .transition()
+            .duration(300)
+            .attr('r', STOP_POINTS_RAYON);
+        }
       })
       .on('click', d => this._actions.onStopPointSelected(d.stopPoint))
       .append('title').text(d => d.stopPoint.name);
@@ -305,7 +311,7 @@ export default class MapView extends React.PureComponent<Props> {
     const overlay = this._overlay || (this._overlay = createOverlay(map, { onStopPointSelected: this.props.onStopPointSelected }));
 
     overlay.updateLineData(this.props.lineData);
-    overlay.updateStopPoints(this.props.stopPoints);
+    overlay.updateStopPoints(this.props.stopPoints, this.props.selectedStopPoint);
   };
 
   render() {
