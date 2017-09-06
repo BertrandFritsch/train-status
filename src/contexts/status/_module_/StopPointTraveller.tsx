@@ -308,7 +308,11 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                     periodType === PeriodType.WEEK
                       ? gaterWeeksOfStopPoints(filteredByStopPoint)
                         .map((date, i) => (
-                          <option key={ i } value={ date.toISOString() }>{ moment(date).format('DD/MM/YYYY') }</option>))
+                          <option key={ i } value={ date.toISOString() }>{(() => {
+                              const m = moment(date);
+                              return `W${m.week()} - ${m.format('DD/MM/YYYY')}`;
+                            })()
+                          }</option>))
                       : null
                   }
                 </select>

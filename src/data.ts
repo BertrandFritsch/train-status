@@ -124,13 +124,29 @@ export function filterStopPointByWeek(tripsByStopPoint: TripStopPoint[], date: D
 }
 
 export function gaterWeeksOfStopPoints(tripsByStopPoint: TripStopPoint[]) {
-  return tripsByStopPoint.reduce((acc, trip) => {
-    const startOfWeek = moment(trip.date).startOf('week').toDate();
-    if (acc.length == 0 || acc[ acc.length - 1 ].getTime() !== startOfWeek.getTime()) {
-      // start a new week
-      acc.push(startOfWeek);
-    }
+  // take all weeks of the year until 09/01
+  const weeks = [];
 
-    return acc;
-  }, ([] as Date[]));
+  // start at the first week of the year
+  let m = moment(new Date(new Date().getFullYear(), 0, 1)).startOf('week');
+  if (m.year() !== new Date().getFullYear()) {
+    m.add(1, 'week');
+  }
+
+  for (let m2 = moment(new Date(new Date().getFullYear(), 8, 1)); m.isBefore(m2); m.add(1, 'weeks')) {
+    weeks.push(m.toDate());
+  }
+
+  return weeks;
+
+  // Code to get the used weeks only
+  // return tripsByStopPoint.reduce((acc, trip) => {
+  //   const startOfWeek = moment(trip.date).startOf('week').toDate();
+  //   if (acc.length == 0 || acc[ acc.length - 1 ].getTime() !== startOfWeek.getTime()) {
+  //     // start a new week
+  //     acc.push(startOfWeek);
+  //   }
+  //
+  //   return acc;
+  // }, ([] as Date[]));
 }
