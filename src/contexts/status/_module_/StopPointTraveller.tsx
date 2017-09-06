@@ -158,7 +158,8 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
 
     const yAxis = d3.axisLeft(yScale)
                     .ticks(5)
-                    .tickSize(-width);
+                    .tickSize(-width)
+                    .tickFormat((d, i) => (`${d}${i === 3 ? ' voyageurs' : ''}`));
 
     const zoomHandler = () => {
       this.setState({
@@ -183,7 +184,9 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
         .call(yAxis)
         .call($g => {
           $g.select('.domain').remove();
-          $g.selectAll(".tick text").attr("x", 15).attr("dy", -2);
+          $g.selectAll(".tick text")
+            .attr("x", (d, i) => (i < 3 ? 15 : 50))
+            .attr("dy", -2);
         });
 
     const $dataGroup = d3.selectAll('g.stop-point-traveller-data');
@@ -262,6 +265,9 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
       >
         <div style={ {height: '100%', display: 'flex'} }>
           <div className="stop-point-traveller-box">
+            <div className="stop-point-traveller-header">
+              <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
+            </div>
             <div className="stop-point-traveller-chart"
                  ref={ node => node && (this.chartState = this.renderChart(node, trips)) }/>
             <div className="stop-point-traveller-tools">
