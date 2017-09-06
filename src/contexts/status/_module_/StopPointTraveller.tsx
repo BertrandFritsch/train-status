@@ -104,9 +104,23 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
            .attr("height", height)
            .attr('transform', `translate(-${ barWidth / 2 }, -${height - pad})`);
 
-      $svg.append('g')
-          .attr('class', 'stop-point-traveller-data')
-          .attr('clip-path', 'url(#clip-data)');
+      const $dataGroup = $svg.append('g')
+                             .attr('class', 'stop-point-traveller-data')
+                             .attr('clip-path', 'url(#clip-data)');
+
+      $dataGroup
+        .append('rect')
+        .attr('class', 'stop-point-traveller-data-bar-overlay')
+        .attr('x', pad)
+        .attr('width', width - 2 * pad + barWidth)
+        .attr('height', height)
+        .attr('fill', 'none')
+        .attr('pointer-events', 'all')
+        .call(d3.zoom()
+                .scaleExtent([ 1, 24 ])
+                .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
+                .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
+                .on('zoom', () => this.chartState && this.chartState.zoomHandler()));
 
       const $axesGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-axis');
@@ -118,23 +132,6 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
 
       $axesGroup.append('g')
                 .attr('class', 'stop-point-traveller-axis-y');
-
-      // zooming / panning
-      const zoom = d3.zoom()
-                     .scaleExtent([ 1, 24 ])
-                     .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                     .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                     .on('zoom', () => this.chartState && this.chartState.zoomHandler());
-
-      $svg
-        .append('rect')
-        .attr('class', 'stop-point-traveller-data-bar-overlay')
-        .attr('x', pad)
-        .attr('width', width - 2 * pad + barWidth)
-        .attr('height', height)
-        .attr('fill', 'none')
-        .attr('pointer-events', 'all')
-        .call(zoom);
 
       return $svg.node() as SVGElement;
     })();
@@ -191,7 +188,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
 
     const $dataGroup = d3.selectAll('g.stop-point-traveller-data');
 
-    const $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
+    let $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
                              .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
 
     // creation of the bars
@@ -210,6 +207,16 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
           .attr('x', d => xScale(d.date))
           .attr('y', d => yScale(d.stepIn))
           .attr('height', d => yScale(0) - yScale(d.stepIn));
+
+
+    $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
+                           .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+
+    $$bars.select('title')
+          .remove();
+
+    $$bars.append('title')
+          .text(d => (`${Math.round(d.stepIn)} voyageurs`));
 
     // removing
     $$bars.exit()
@@ -308,10 +315,10 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                     periodType === PeriodType.WEEK
                       ? gaterWeeksOfStopPoints(filteredByStopPoint)
                         .map((date, i) => (
-                          <option key={ i } value={ date.toISOString() }>{(() => {
-                              const m = moment(date);
-                              return `W${m.week()} - ${m.format('DD/MM/YYYY')}`;
-                            })()
+                          <option key={ i } value={ date.toISOString() }>{ (() => {
+                            const m = moment(date);
+                            return `W${m.week()} - ${m.format('DD/MM/YYYY')}`;
+                          })()
                           }</option>))
                       : null
                   }
