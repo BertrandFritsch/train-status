@@ -1,10 +1,10 @@
 import { connect } from 'react-redux';
-import { State, StopPoint } from './reducers';
+import { StatusState, State, StopPoint } from './reducers';
 import ActionTypes, { Dispatch } from './actionTypes';
 import MapView from './MapView';
 
 export default connect(
-  (state: { status: State }) => ({
+  (state: StatusState) => ({
     lineData: state.status.data.lineData,
     stopPoints: state.status.data.stopPoints
   }),

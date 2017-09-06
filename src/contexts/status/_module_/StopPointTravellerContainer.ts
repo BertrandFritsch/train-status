@@ -1,10 +1,10 @@
 import { connect } from 'react-redux';
-import { State, PeriodType, Period } from './reducers';
+import { StatusState, State, Period } from './reducers';
 import ActionTypes, { Dispatch } from './actionTypes';
 import StopPointTraveller from './StopPointTraveller';
 
 export default connect(
-  (state: { status: State }) => ({
+  (state: StatusState) => ({
     selectedStopPoint: state.status.selectedStopPoint
   }),
   (dispatch: Dispatch<State>) => ({

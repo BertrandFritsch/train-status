@@ -1,10 +1,10 @@
 import { connect } from 'react-redux';
-import { State, SuggestionLine } from './reducers';
+import { StatusState, State, SuggestionLine } from './reducers';
 import ActionTypes, { Dispatch } from './actionTypes';
 import LineSelector from './LineSelector';
 
 export default connect(
-  (state: { status: State }) => ({
+  (state: StatusState) => ({
     suggestions: state.status.data.lines
   }),
   (dispatch: Dispatch<State>) => ({

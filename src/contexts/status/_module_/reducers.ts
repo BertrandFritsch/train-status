@@ -59,6 +59,8 @@ export interface State {
   error: Error | null
 }
 
+export type StatusState = { status: State }
+
 const initialState: State = {
   data: {
     lines: [],
@@ -69,7 +71,7 @@ const initialState: State = {
     stopPoints: []
   },
   selectedStopPoint: {
-    stopPoint: STOP_POINT_VRD,
+    stopPoint: null /*STOP_POINT_VRD*/,
     period: {
       type: PeriodType.YEAR,
       value: moment().year()
