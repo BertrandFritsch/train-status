@@ -39,12 +39,12 @@
   vector-effect: non-scaling-stroke;
 }
 
-.stop-point-traveller-chart .stop-point-traveller-data-bar {
-  fill: rgb(175, 8, 61)
+.stop-point-traveller-chart .stop-point-traveller-data {
+  cursor: move;
 }
 
-.stop-point-traveller-chart .stop-point-traveller-data-bar-overlay {
-  cursor: move;
+.stop-point-traveller-chart .stop-point-traveller-data-bar {
+  fill: rgb(175, 8, 61)
 }
 
 .stop-point-traveller-chart .stop-point-traveller-axis-y .tick:not(:first-of-type) line {

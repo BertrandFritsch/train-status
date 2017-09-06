@@ -106,21 +106,22 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
 
       const $dataGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-data')
-                             .attr('clip-path', 'url(#clip-data)');
+                             .attr('clip-path', 'url(#clip-data)')
 
-      $dataGroup
-        .append('rect')
-        .attr('class', 'stop-point-traveller-data-bar-overlay')
-        .attr('x', pad)
-        .attr('width', width - 2 * pad + barWidth)
-        .attr('height', height)
-        .attr('fill', 'none')
-        .attr('pointer-events', 'all')
-        .call(d3.zoom()
-                .scaleExtent([ 1, 24 ])
-                .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                .on('zoom', () => this.chartState && this.chartState.zoomHandler()));
+                             // zooming and panning: the event is attached to the ancestor of the bars
+                             .call(d3.zoom()
+                                     .scaleExtent([ 1, 24 ])
+                                     .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
+                                     .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
+                                     .on('zoom', () => this.chartState && this.chartState.zoomHandler()));
+
+      // zooming and panning: a rect element is added behind the bars to capture the mouse events between the bars
+      $dataGroup.append('rect')
+                .attr('x', pad)
+                .attr('width', width - 2 * pad + barWidth)
+                .attr('height', height)
+                .attr('fill', 'none')
+                .attr('pointer-events', 'all');
 
       const $axesGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-axis');
@@ -189,7 +190,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
     const $dataGroup = d3.selectAll('g.stop-point-traveller-data');
 
     let $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
-                             .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+                           .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
 
     // creation of the bars
     $$bars.enter()
@@ -210,7 +211,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
 
 
     $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
-                           .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+                       .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
 
     $$bars.select('title')
           .remove();
