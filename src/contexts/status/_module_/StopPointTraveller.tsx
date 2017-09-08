@@ -35,11 +35,20 @@ interface Props {
   periodTypeSelected: (selection: Period) => void
 }
 
+interface State {
+  timeSlot: [ Date, Date ] | null
+}
+
 interface ChartState {
   /**
    * The root SVG element
    */
   rootNode: SVGElement | null;
+
+  /**
+   * true while the brush is moved by code
+   */
+  brushMoving: boolean;
 
   updateBrush(xZoomedScale: d3.ScaleTime<Date, number>): void;
 
@@ -67,14 +76,21 @@ const zScale = d3.scaleQuantize()
                  .domain([ 1, 24 ])
                  .range([ 60, 30, 15, 5, 1 ]); // in minutes
 
-export default class StopPointTraveller extends React.PureComponent<Props> {
+function formatTimeSlotDate(date: Date) {
+  return date.toLocaleTimeString('fr', {hour: '2-digit', minute: '2-digit'});
+}
+
+export default class StopPointTraveller extends React.PureComponent<Props, State> {
+  state = {
+    timeSlot: null
+  };
 
   /**
    * Holds the state of the chart
    * - create the static structure only once
    * - captures the current state to react to the wheel event
    */
-  chartState: ChartState = {rootNode: null, updateBrush: () => {}, update: () => {}};
+  chartState: ChartState = {rootNode: null, brushMoving: false, updateBrush: () => {}, update: () => {}};
 
   renderChart = (node: HTMLElement, selectedTrips: StepInByPeriod[]) => {
 
@@ -116,18 +132,41 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                      .on('zoom', () => this.chartState.update());
 
       const brush = d3.brushX()
-                      .extent([ [ pad, 0 ], [ width, height ] ])
+                      .extent([ [ pad, 0 ], [ width - pad, height ] ])
 
                       //  on start, clean the registered brush update function
-                      .on('start', () => (this.chartState.updateBrush = () => {}))
+                      .on('start', () => {
+                        // only interested in user-initiated events
+                        if (this.chartState.brushMoving) return;
+
+                        this.chartState.updateBrush = () => {};
+
+                        this.setState({
+                          timeSlot: null
+                        });
+                      })
 
                       // on end, register a new brush update function with the selected dates
-                      .on('end', () => {
+                      .on('brush end', () => {
+                        // only interested in user-initiated events
+                        if (this.chartState.brushMoving) return;
+
                         const scale = d3.zoomTransform($dataGroup.node() as SVGElement).rescaleX(xScale as any);
                         const selectedZone = (d3.event.selection as [ number, number ]).map((v: number) => scale.invert(v)) as [ Date, Date ];
 
-                        this.chartState.updateBrush = (xZoomedScale: d3.ScaleTime<Date, number>) =>
-                          brush.move($dataGroup as any, selectedZone.map(d => xZoomedScale(d)) as d3.BrushSelection);
+                        this.chartState.updateBrush = (xZoomedScale: d3.ScaleTime<Date, number>) => {
+                          try {
+                            this.chartState.brushMoving = true;
+                            brush.move($dataGroup as any, selectedZone.map(d => xZoomedScale(d)) as d3.BrushSelection);
+                          }
+                          finally {
+                            this.chartState.brushMoving = false;
+                          }
+                        };
+
+                        this.setState({
+                          timeSlot: selectedZone
+                        });
                       });
 
       const $dataGroup = $svg.append('g')
@@ -150,7 +189,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
 
       $axesGroup.append('g')
                 .attr('class', 'stop-point-traveller-axis-x')
-                .attr('transform', `translate(${ barWidth / 2 }, ${height - pad})`)
+                .attr('transform', `translate(0, ${height - pad})`)
                 .attr('clip-path', 'url(#clip-x-axis)');
 
       $axesGroup.append('g')
@@ -287,13 +326,26 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       >
         <div style={ {height: '100%', display: 'flex'} }>
           <div className="stop-point-traveller-box">
-            <div className="stop-point-traveller-header">
-              <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
+            <div className="stop-point-traveller-tools">
+              <div className="stop-point-traveller-tools-header">
+                <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
+              </div>
+              <div className="stop-point-traveller-tools-flux">
+                <span>Visualisation du flux de voyageurs sur la ligne</span>
+                {
+                  (() => {
+                    if (this.state.timeSlot !== null) {
+                      const timeSlot = this.state.timeSlot! as [ Date, Date ];
+                      return <span>{ ` entre ${ formatTimeSlotDate(timeSlot[ 0 ]) } et ${ formatTimeSlotDate(timeSlot[ 1 ]) }` }</span>;
+                    }
+                  })()
+                }
+              </div>
             </div>
             <div className="stop-point-traveller-chart"
                  ref={ node => node && (this.chartState = this.renderChart(node, trips)) }/>
-            <div className="stop-point-traveller-tools">
-              <div className="stop-point-traveller-tools-header">Affichage par période :</div>
+            <div className="stop-point-traveller-selectors">
+              <div className="stop-point-traveller-selectors-header">Affichage par période :</div>
               <div className="stop-point-traveller-selector-container">
                 <label>
                   <input type="radio" name="select-period" value={ PeriodType.DATE }
@@ -378,7 +430,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                   <option key={ 2017 } value={ 2017 }>2017</option>
                 </select>
               </div>
-              <div className="stop-point-traveller-tools-header">Affichage par fréquence :</div>
+              <div className="stop-point-traveller-selectors-header">Affichage par fréquence :</div>
               <div className="stop-point-traveller-selector-container">
                 <label>
                   <input type="radio" name="select-period" value={ PeriodType.FREQUENCY }

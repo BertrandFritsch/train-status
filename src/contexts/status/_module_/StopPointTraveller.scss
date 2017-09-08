@@ -16,7 +16,7 @@
   height: 100%;
 }
 
-.stop-point-traveller-tools {
+.stop-point-traveller-selectors {
   width: 400px;
   margin: 20px;
   padding-left: 20px;
@@ -31,7 +31,7 @@
   }
 }
 
-.stop-point-traveller-tools-header {
+.stop-point-traveller-selectors-header {
   margin-top: 20px;
 }
 
@@ -68,7 +68,7 @@
   }
 }
 
-.stop-point-traveller-header {
+.stop-point-traveller-tools-header {
   width: 150px;
   margin: 20px;
   padding-left: 20px;
@@ -77,8 +77,13 @@
     font-weight: bold;
     font-size: 1.3em;
   }
+}
 
-  select {
-    width: 168px;
+.stop-point-traveller-tools-flux {
+  width: 200px;
+  margin: 20px;
+  padding-left: 20px;
+
+  label {
   }
 }
