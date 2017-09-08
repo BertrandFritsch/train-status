@@ -41,18 +41,26 @@ interface ChartState {
    */
   rootNode: SVGElement | null;
 
-  /**
-   * The current zoom level
-   */
-  zoomLevel: number;
-
-  /**
-   * The current transformation of the histogram
-   */
-  transform: any | null;
+  updateBrush(xZoomedScale: d3.ScaleTime<Date, number>): void;
 
   update(): void;
 }
+
+const width = 400;
+const aspectRatio = 3.0; // => 3.0 / 1.0
+const height = width / aspectRatio;
+const pad = 20; // inner margins
+const barWidth = (width - 2 * pad * 2) / 24;
+const hour0 = moment().startOf('day').toDate();
+const hour24 = moment().endOf('day').toDate();
+
+const xScale = d3.scaleTime()
+                 .domain([ hour0, hour24 ])
+                 .range([ pad, width - pad ]);
+
+const yScale = d3.scaleLinear()
+                 .domain([ 0, 1600 ])
+                 .range([ height - pad, pad ]);
 
 // zoom scaling
 const zScale = d3.scaleQuantize()
@@ -60,23 +68,15 @@ const zScale = d3.scaleQuantize()
                  .range([ 60, 30, 15, 5, 1 ]); // in minutes
 
 export default class StopPointTraveller extends React.PureComponent<Props> {
-  readonly hour0 = moment().startOf('day').toDate();
-  readonly hour24 = moment().endOf('day').toDate();
 
   /**
    * Holds the state of the chart
    * - create the static structure only once
    * - captures the current state to react to the wheel event
    */
-  chartState: ChartState = {rootNode: null, zoomLevel: 60, transform: null, update: () => {}};
+  chartState: ChartState = {rootNode: null, updateBrush: () => {}, update: () => {}};
 
   renderChart = (node: HTMLElement, selectedTrips: StepInByPeriod[]) => {
-
-    const width = 400;
-    const aspectRatio = 3.0 / 1.0;
-    const height = width / aspectRatio;
-    const pad = 20; // inner margins
-    const barWidth = (width - 2 * pad * 2) / 24;
 
     const rootNode = this.chartState.rootNode || (() => {
       // create the static structure if it doesn't exist yet
@@ -103,35 +103,47 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
            .attr("height", height)
            .attr('transform', `translate(-${ barWidth / 2 }, -${height - pad})`);
 
+      // zooming and panning: create the zoom behavior
+      const zoom = d3.zoom()
+                     .scaleExtent([ 1, 24 ])
+                     .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, 0 ] ])
+                     .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, 0 ] ])
+
+                     // disable the pan gesture
+                     .filter(() => d3.event.type !== 'mousedown')
+
+                     // on zoom events, update the chart
+                     .on('zoom', () => this.chartState.update());
+
+      const brush = d3.brushX()
+                      .extent([ [ pad, 0 ], [ width, height ] ])
+
+                      //  on start, clean the registered brush update function
+                      .on('start', () => (this.chartState.updateBrush = () => {}))
+
+                      // on end, register a new brush update function with the selected dates
+                      .on('end', () => {
+                        const scale = d3.zoomTransform($dataGroup.node() as SVGElement).rescaleX(xScale as any);
+                        const selectedZone = (d3.event.selection as [ number, number ]).map((v: number) => scale.invert(v)) as [ Date, Date ];
+
+                        this.chartState.updateBrush = (xZoomedScale: d3.ScaleTime<Date, number>) =>
+                          brush.move($dataGroup as any, selectedZone.map(d => xZoomedScale(d)) as d3.BrushSelection);
+                      });
+
       const $dataGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-data')
                              .attr('clip-path', 'url(#clip-data)')
 
+                             // zooming and panning: the pan gesture is attached to the x-wheel event
+                             .on('wheel.pan', () => {
+                               zoom.translateBy($dataGroup as any, -d3.event.deltaX * (d3.event.deltaMode ? 120 : 1) / 10, 0);
+                             })
+
                              // zooming and panning: the event is attached to the ancestor of the bars
-                             .call(d3.zoom()
-                                     .scaleExtent([ 1, 24 ])
-                                     .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                                     .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, height ] ])
-                                     .on('zoom', () => {
+                             .call(zoom)
 
-                                       // update the scaling data
-                                       this.chartState = {
-                                         ...this.chartState,
-                                         zoomLevel: zScale(d3.event.transform.k),
-                                         transform: d3.event.transform
-                                       };
-
-                                       // refresh the chart
-                                       this.chartState.update();
-                                     }));
-
-      // zooming and panning: a rect element is added behind the bars to capture the mouse events between the bars
-      $dataGroup.append('rect')
-                .attr('x', pad)
-                .attr('width', width - 2 * pad + barWidth)
-                .attr('height', height)
-                .attr('fill', 'none')
-                .attr('pointer-events', 'all');
+                             // brushing: the event is attached to the ancestor of the bars
+                             .call(brush);
 
       const $axesGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-axis');
@@ -149,24 +161,17 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
 
     const chartUpdate = () => {
 
-      const trips = stepInByPeriod(selectedTrips, this.chartState.zoomLevel);
+      const $dataGroup = d3.select('g.stop-point-traveller-data');
+      const zoomTransform = d3.zoomTransform($dataGroup.node() as SVGElement);
+
+      const trips = stepInByPeriod(selectedTrips, zScale(zoomTransform.k));
 
       const $svg = d3.select(rootNode);
 
-      let xScale = d3.scaleTime()
-                     .domain([ this.hour0, this.hour24 ])
-                     .range([ pad, width - pad ]);
+      // apply the transformation of the x-axis
+      const xZoomedScale = zoomTransform.rescaleX(xScale as any);
 
-      if (this.chartState.transform) {
-        // apply the transformation of the x-axis if any has been stored in the state
-        xScale = this.chartState.transform.rescaleX(xScale);
-      }
-
-      const yScale = d3.scaleLinear()
-                       .domain([ 0, 1600 ])
-                       .range([ height - pad, pad ]);
-
-      const xAxis = d3.axisBottom(xScale)
+      const xAxis = d3.axisBottom(xZoomedScale)
                       .tickFormat(d3.timeFormat('%H:%M'));
 
       const yAxis = d3.axisLeft(yScale)
@@ -175,10 +180,10 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                       .tickFormat((d, i) => (`${d}${i === 3 ? ' voyageurs' : ''}`));
 
       $svg.select('g.stop-point-traveller-axis-x')
-                     .call(xAxis)
-                     .call(($g: any) => {
-                       $g.select('.domain').remove();
-                     });
+          .call(xAxis)
+          .call(($g: any) => {
+            $g.select('.domain').remove();
+          });
 
       $svg.select('g.stop-point-traveller-axis-y')
           .call(yAxis)
@@ -188,8 +193,6 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
               .attr("x", (d, i) => (i < 3 ? 15 : 50))
               .attr("dy", -2);
           });
-
-      const $dataGroup = d3.selectAll('g.stop-point-traveller-data');
 
       let $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
                              .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
@@ -201,14 +204,14 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       $$bars.enter()
             .append('rect')
             .attr('class', 'stop-point-traveller-data-bar')
-            .attr('x', d => xScale(d.date))
+            .attr('x', d => xZoomedScale(d.date))
             .attr('y', yScale(0))
             .attr('width', barWidth)
             .attr('height', 0)
 
             // updating
             .merge($$bars)
-            .attr('x', d => xScale(d.date))
+            .attr('x', d => xZoomedScale(d.date))
             .transition()
             .duration(300)
             .attr('y', d => yScale(d.stepIn))
@@ -226,6 +229,8 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       // removing
       $$bars.exit()
             .remove();
+
+      this.chartState.updateBrush(xZoomedScale);
     };
 
     // initial rendering, after the component has been refreshed
