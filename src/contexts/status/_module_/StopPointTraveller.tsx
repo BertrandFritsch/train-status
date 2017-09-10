@@ -36,7 +36,7 @@ interface Props {
 }
 
 interface State {
-  timeSlot: [ Date, Date ] | null
+  timeSlot: Date[]
 }
 
 interface ChartState {
@@ -82,7 +82,7 @@ function formatTimeSlotDate(date: Date) {
 
 export default class StopPointTraveller extends React.PureComponent<Props, State> {
   state = {
-    timeSlot: null
+    timeSlot: [ hour0, hour24 ]
   };
 
   /**
@@ -142,14 +142,14 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                         this.chartState.updateBrush = () => {};
 
                         this.setState({
-                          timeSlot: null
+                          timeSlot: [ hour0, hour24 ]
                         });
                       })
 
                       // on end, register a new brush update function with the selected dates
                       .on('brush end', () => {
                         // only interested in user-initiated events
-                        if (this.chartState.brushMoving) return;
+                        if (this.chartState.brushMoving || d3.event.selection === null) return;
 
                         const scale = d3.zoomTransform($dataGroup.node() as SVGElement).rescaleX(xScale as any);
                         const selectedZone = (d3.event.selection as [ number, number ]).map((v: number) => scale.invert(v)) as [ Date, Date ];
@@ -331,15 +331,19 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                 <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
               </div>
               <div className="stop-point-traveller-tools-flux">
-                <span>Visualisation du flux de voyageurs sur la ligne</span>
-                {
-                  (() => {
-                    if (this.state.timeSlot !== null) {
-                      const timeSlot = this.state.timeSlot! as [ Date, Date ];
-                      return <span>{ ` entre ${ formatTimeSlotDate(timeSlot[ 0 ]) } et ${ formatTimeSlotDate(timeSlot[ 1 ]) }` }</span>;
-                    }
-                  })()
-                }
+                <span>
+                  Visualisation du flux de voyageurs sur la ligne
+                  entre { formatTimeSlotDate(this.state.timeSlot[ 0 ]) }
+                  { " et " }{ formatTimeSlotDate(this.state.timeSlot[ 1 ]) }
+                </span>
+              </div>
+              <div className="stop-point-traveller-tools-routes">
+                { this.props.selectedStopPoint.routes.map(r =>
+                  <label key={ r.id }><input type="radio" name="select-route"/>{ r.name }</label>
+                ) }
+              </div>
+              <div className="stop-point-traveller-tools-commands">
+                <button><i className="fa fa-play fa-lg" /></button>
               </div>
             </div>
             <div className="stop-point-traveller-chart"

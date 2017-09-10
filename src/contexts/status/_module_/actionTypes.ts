@@ -2,7 +2,7 @@
  * All redux actions are events
  */
 
-import { SuggestionLines, LineData, StopPoints, StopPoint, SuggestionLine, Period } from './reducers';
+import { SuggestionLines, LineData, StopPoints, Route, StopPoint, SuggestionLine, Period } from './reducers';
 
 const enum ActionTypes {
   DATA_LOADING = 'DATA_LOADING',
@@ -16,6 +16,7 @@ const enum ActionTypes {
   STOP_POINTS_LOADED = 'STOP_POINTS_LOADED',
   DATA_LOAD_FAILED = 'DATA_LOAD_FAILED',
   STOP_POINT_SELECTED = 'STOP_POINT_SELECTED',
+  STOP_POINT_ROUTES_LOADED = 'STOP_POINT_ROUTES_LOADED',
   PERIOD_SELECTED = 'PERIOD_SELECTED'
 }
 
@@ -33,6 +34,7 @@ export type StatusAction =
   | { type: ActionTypes.STOP_POINTS_LOADED, payload: StopPoints }
   | { type: ActionTypes.DATA_LOAD_FAILED, payload: Error }
   | { type: ActionTypes.STOP_POINT_SELECTED, payload: StopPoint }
+  | { type: ActionTypes.STOP_POINT_ROUTES_LOADED, payload: Route[] }
   | { type: ActionTypes.PERIOD_SELECTED, payload: Period };
 
 export interface Dispatch<S> {

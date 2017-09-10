@@ -5,9 +5,10 @@ import ActionTypes, { StatusAction } from './actionTypes';
 
 // const line = { id: 'line:OIF:810:AOIF741', name: 'RER A' }; // RER A
 const line = { id: 'line:OIF:800:LOIF742', name: 'Transilien L' }; // Ligne L
-const suggestionLinesURI = (value: string) => `https://api.navitia.io/v1/coverage/fr-idf/pt_objects?q=${value}&type[]=line&count=100&depth=0`;
-const lineURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/lines/${id}`;
+const suggestionLinesURI = (value: string) => `https://api.navitia.io/v1/coverage/fr-idf/pt_objects?q=${value}&type[]=line&count=100&depth=3`;
+const lineURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/lines/${id}?depth=1`;
 const stopPointsURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/lines/${id}/stop_points?count=100`;
+const stopPointRoutesURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/stop_points/${id}/routes?depth=1&forbidden_uris[]=physical_mode:Bus`;
 const authToken = '500e0590-34d8-45bc-8081-2da6fd3b7755';
 
 // character-typed put function
@@ -37,6 +38,18 @@ interface SNCFStopPoints {
     coord: {
       lat: string,
       lon: string
+    }
+  }>
+}
+
+interface SNCFRoutes {
+  routes: Array<{
+    id: string,
+    direction: {
+      name: string
+    },
+    geojson: {
+      coordinates: number[][][]
     }
   }>
 }
@@ -99,6 +112,29 @@ function* loadStopPoints() {
     if (apiCall.type === CallAPIResultType.SUCCESS && apiCall.status === 200 && apiCall.body) {
       const data = apiCall.body.stop_points.map(d => ({ id: d.id, name: d.name, coord: [ +d.coord.lat, +d.coord.lon ] }));
       yield statusActionPut({ type: ActionTypes.STOP_POINTS_LOADED, payload: data });
+    }
+    else {
+      // the API call failed
+      yield statusActionPut({
+        type: ActionTypes.DATA_LOAD_FAILED,
+        payload: apiCall.type === CallAPIResultType.SUCCESS ? new Error('The API call failed') : apiCall.error
+      });
+    }
+  }
+}
+
+function* loadStopPointRoutes() {
+
+  for (;;) {
+
+    const action = yield statusActionTake(ActionTypes.STOP_POINT_SELECTED);
+
+    // get the stop points
+    const apiCall: CallAPIResult<SNCFRoutes> = yield call(callAPI, stopPointRoutesURI(action.payload.id), { headers: { Authorization: authToken } });
+
+    if (apiCall.type === CallAPIResultType.SUCCESS && apiCall.status === 200 && apiCall.body) {
+      const data = apiCall.body.routes.map(d => ({ id: d.id, name: d.direction.name, coords: d.geojson.coordinates.reduce((acc, d1) => [ ...acc, ...d1 ], []) }));
+      yield statusActionPut({ type: ActionTypes.STOP_POINT_ROUTES_LOADED, payload: data });
     }
     else {
       // the API call failed

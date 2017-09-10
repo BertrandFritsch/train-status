@@ -48,9 +48,16 @@ export interface StatusData {
   stopPoints: StopPoints
 }
 
+export interface Route {
+  id: string,
+  name: string,
+  coords: number[][]
+}
+
 export interface SelectedStopPoint {
   stopPoint: StopPoint | null,
-  period: Period
+  period: Period,
+  routes: Route[]
 }
 
 export interface State {
@@ -75,7 +82,8 @@ const initialState: State = {
     period: {
       type: PeriodType.YEAR,
       value: moment().year()
-    }
+    },
+    routes: []
   },
   error: null
 };
@@ -108,6 +116,9 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
 
     case ActionTypes.STOP_POINT_SELECTED:
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPoint: action.payload } };
+
+    case ActionTypes.STOP_POINT_ROUTES_LOADED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, routes: action.payload } };
 
     case ActionTypes.PERIOD_SELECTED:
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, period: action.payload } };

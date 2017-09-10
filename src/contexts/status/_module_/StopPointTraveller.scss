@@ -1,4 +1,8 @@
 
+input[type~='radio'] {
+  margin-right: 5px;
+}
+
 .stop-point-traveller-box {
   display: flex;
   margin: 20px;
@@ -8,6 +12,9 @@
 
 .stop-point-traveller-chart {
   display: flex;
+
+  min-width: 800px;
+  height: 258px;
   flex-grow: 1;
 }
 
@@ -17,7 +24,6 @@
 }
 
 .stop-point-traveller-selectors {
-  width: 400px;
   margin: 20px;
   padding-left: 20px;
   border-left: #aaaaaa 1px solid;
@@ -69,9 +75,8 @@
 }
 
 .stop-point-traveller-tools-header {
-  width: 150px;
+  width: 200px;
   margin: 20px;
-  padding-left: 20px;
 
   label {
     font-weight: bold;
@@ -82,8 +87,19 @@
 .stop-point-traveller-tools-flux {
   width: 200px;
   margin: 20px;
-  padding-left: 20px;
 
   label {
   }
+}
+
+.stop-point-traveller-tools-routes {
+  margin: 20px;
+
+  label {
+    display: block;
+  }
+}
+
+.stop-point-traveller-tools-commands {
+  margin: 20px;
 }
