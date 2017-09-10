@@ -4,12 +4,12 @@ import './LoginView.scss';
 import {LoginCredentials} from './reducers';
 
 interface Props {
-  loggedIn: boolean
-  username: string,
+  loggedIn: boolean;
+  username: string;
 
-  backComponent: React.ComponentClass,
+  backComponent: React.ComponentClass;
 
-  onLoginRequested: (creds: LoginCredentials) => void
+  onLoginRequested: (creds: LoginCredentials) => void;
 }
 
 export default class LoginView extends React.PureComponent<Props> {

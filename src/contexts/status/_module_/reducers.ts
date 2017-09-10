@@ -1,13 +1,6 @@
-import * as moment from 'moment';
-
 import { StatusAction } from './actionTypes';
 import ActionTypes from './actionTypes';
-
-const STOP_POINT_VRD = {
-  id: 'stop_point:OIF:SP:8738288:800:L',
-  name: 'Gare de Viroflay Rive Droite',
-  coord: [ 48.805493, 2.16852]
-};
+import { TripStopPoint } from "../../../data";
 
 export const enum PeriodType {
   DATE = 'DATE',
@@ -34,7 +27,7 @@ export interface LineData {
   coordinates: Array<Array<[ number, number ]>>
 }
 
-export type StopPoint = {
+export interface StopPoint {
   id: string,
   name: string,
   coord: number[]
@@ -48,9 +41,25 @@ export interface StatusData {
   stopPoints: StopPoints
 }
 
+export interface Route {
+  id: string,
+  name: string,
+  stopPoints: StopPoint[]
+}
+
+export type TimeSlot = [ Date, Date ];
+
+export type TimeSlotTrain = TripStopPoint[];
+
 export interface SelectedStopPoint {
-  stopPoint: StopPoint | null,
-  period: Period
+  stopPoint: StopPoint | null;
+  period: Period;
+  routes: Route[];
+  selectedRoute: string | null;
+  timeSlot: TimeSlot | null;
+  timeSlotTrains: TimeSlotTrain[];
+  timePosition: number;        // last fixed position in milliseconds since the start date
+  timeRunning: Date | null;    // Date => time is running; date when the time has started running at timePosition
 }
 
 export interface State {
@@ -71,11 +80,17 @@ const initialState: State = {
     stopPoints: []
   },
   selectedStopPoint: {
-    stopPoint: null /*STOP_POINT_VRD*/,
+    stopPoint: null,
     period: {
-      type: PeriodType.YEAR,
-      value: moment().year()
-    }
+      type: PeriodType.FREQUENCY,
+      value: 1
+    },
+    routes: [],
+    selectedRoute: null,
+    timeSlot: null,
+    timeSlotTrains: [],
+    timePosition: 0,
+    timeRunning: null
   },
   error: null
 };
@@ -109,8 +124,20 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
     case ActionTypes.STOP_POINT_SELECTED:
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPoint: action.payload } };
 
+    case ActionTypes.STOP_POINT_ROUTES_LOADED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, routes: action.payload } };
+
     case ActionTypes.PERIOD_SELECTED:
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, period: action.payload } };
+
+    case ActionTypes.TIMESLOT_SELECTED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, timeSlot: action.payload } };
+
+    case ActionTypes.ROUTE_SELECTED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, selectedRoute: action.payload.id } };
+
+    case ActionTypes.TIMESLOT_TRAINS_UPDATED:
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, timeSlotTrains: action.payload } };
 
     default:
       return locState;

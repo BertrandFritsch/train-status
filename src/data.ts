@@ -15,7 +15,7 @@ interface RawTrip {
   }>
 }
 
-interface TripStopPoint {
+export interface TripStopPoint {
   date: Date,
   id: string,
   stepIn: number,
@@ -48,6 +48,23 @@ export function filterTripsOfStopPoint(id: string) {
     .map(trip => trip.stops.filter(stop => stop.id === id)[ 0 ]);
 }
 
+export function filterTripsOfStopPointByTimeSlot(id: string, beginDate: Date, endDate: Date) {
+  const beginTime = (beginDate.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+  const endTime = (endDate.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+
+  return trips
+    .filter(trip => {
+      const sp = trip.stops.find(s => s.id === id);
+      if (sp) {
+        const time = (sp.date.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+        return beginTime <= time && time <= endTime;
+      }
+      else {
+        return false;
+      }
+    });
+}
+
 function getMinutesOfDay(date: Date) {
   return (date.getTime() - new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).getTime()) / MILLISECONDS_PER_MINUTE;
 }
@@ -77,7 +94,7 @@ export function stepInByPeriod(stops: StepInByPeriod[], minutesPerPeriod: number
     }, arr);
 }
 
-export function groupTrainByHour(stops: TripStopPoint[]) {
+export function groupTrainsByHour(stops: TripStopPoint[]) {
   const tripsByHour = stops.reduce((acc, stop) => {
 
     const time = (stop.date.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
@@ -100,27 +117,64 @@ export function groupTrainByHour(stops: TripStopPoint[]) {
                });
 }
 
-export function filterStopPointByYear(tripsByStopPoint: TripStopPoint[], year: number) {
-  return tripsByStopPoint.filter(trip => trip.date.getFullYear() === year);
+export function groupTripsByHour(trips: Trip[]) {
+  const hour0 = new Date().getTime() - MILLISECONDS_PER_TIMEZONEOFFSET % MILLISECONDS_PER_DAY;
+
+  const tripsByHour = trips.reduce((acc, trip) => {
+
+    // order trips by start time and number of stop points
+    // use the number of stop points as decimal part
+    const time = (trip.date.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+    const timeAndLength = time + (trip.stops.length / 100);
+    if (!acc[ timeAndLength ]) {
+      acc[ timeAndLength ] = { date: new Date(hour0 + time), trips: [] };
+    }
+
+    acc[ timeAndLength ].trips.push(trip.stops);
+
+    return acc;
+  }, ({} as { [ hour: string ]: { date: Date, trips: TripStopPoint[][] } }));
+
+  return Object.keys(tripsByHour)
+    .sort()
+    .map(time => {
+      const trips = tripsByHour[ time ].trips;
+      const reducedTrips = trips[ 0 ].map(sp => ({ ...sp }));
+      for (let i = 0, iEnd = reducedTrips.length; i < iEnd; ++i) {
+        for (let j = 1, jEnd = trips.length; j < jEnd; ++jEnd) {
+          reducedTrips[i].stepIn += trips[j][i].stepIn;
+          reducedTrips[i].stepOut += trips[j][i].stepOut;
+        }
+
+        reducedTrips[i].stepIn /= trips.length;
+        reducedTrips[i].stepOut /= trips.length;
+      }
+
+      return reducedTrips;
+    });
 }
 
-export function filterStopPointByDate(tripsByStopPoint: TripStopPoint[], date: Date) {
+export function filterStopPointByYear<T extends { date: Date }>(trips: T[], year: number) {
+  return trips.filter(trip => trip.date.getFullYear() === year);
+}
+
+export function filterStopPointByDate<T extends { date: Date }>(trips: T[], date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth();
   const day = date.getDate();
-  return tripsByStopPoint.filter(trip => trip.date.getFullYear() === year && trip.date.getMonth() === month && trip.date.getDate() === day);
+  return trips.filter(trip => trip.date.getFullYear() === year && trip.date.getMonth() === month && trip.date.getDate() === day);
 }
 
-export function filterStopPointByFrequency(tripsByStopPoint: TripStopPoint[], day: number) {
-  return tripsByStopPoint.filter(trip => trip.date.getDay() === day);
+export function filterStopPointByFrequency<T extends { date: Date }>(trips: T[], day: number) {
+  return trips.filter(trip => trip.date.getDay() === day);
 }
 
-export function filterStopPointByMonth(tripsByStopPoint: TripStopPoint[], month: number) {
-  return tripsByStopPoint.filter(trip => trip.date.getMonth() === month);
+export function filterStopPointByMonth<T extends { date: Date }>(trips: T[], month: number) {
+  return trips.filter(trip => trip.date.getMonth() === month);
 }
 
-export function filterStopPointByWeek(tripsByStopPoint: TripStopPoint[], date: Date) {
-  return tripsByStopPoint.filter(trip => moment(trip.date).startOf('week').toDate().getTime() === date.getTime());
+export function filterStopPointByWeek<T extends { date: Date }>(trips: T[], date: Date) {
+  return trips.filter(trip => moment(trip.date).startOf('week').toDate().getTime() === date.getTime());
 }
 
 export function gaterWeeksOfStopPoints(tripsByStopPoint: TripStopPoint[]) {

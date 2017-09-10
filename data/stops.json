@@ -2,96 +2,160 @@
   {
     "id": "stop_point:OIF:SP:8738286:800:L",
     "name": "Gare de Versailles Rive Droite",
+    "coord": {
+      "lat": 48.809482,
+      "lon": 2.135087
+    },
     "weightStepIn": 6,
     "weightStepOut": 0
   },
   {
     "id": "stop_point:OIF:SP:8738287:800:L",
     "name": "Gare de Montreuil",
+    "coord": {
+      "lat": 48.806377,
+      "lon": 2.1515
+    },
     "weightStepIn": 3,
     "weightStepOut": 0
   },
   {
     "id": "stop_point:OIF:SP:8738288:800:L",
     "name": "Gare de Viroflay Rive Droite",
+    "coord": {
+      "lat": 48.805493,
+      "lon": 2.16852
+    },
     "weightStepIn": 3,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738233:800:L",
     "name": "Gare de Chaville Rive Droite",
+    "coord": {
+      "lat": 48.812572,
+      "lon": 2.18826
+    },
     "weightStepIn": 3,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738234:800:L",
     "name": "Gare de Sevres Ville d'Avray",
+    "coord": {
+      "lat": 48.827239,
+      "lon": 2.200721
+    },
     "weightStepIn": 3,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738235:800:L",
     "name": "Gare de Saint-Cloud",
+    "coord": {
+      "lat": 48.846103,
+      "lon": 2.217621
+    },
     "weightStepIn": 4,
     "weightStepOut": 2
   },
   {
     "id": "stop_point:OIF:SP:8738236:800:L",
     "name": "Gare du Val d'Or",
+    "coord": {
+      "lat": 48.85642,
+      "lon": 2.216572
+    },
     "weightStepIn": 2,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738237:800:L",
     "name": "Gare de Suresnes Mont Valerien",
+    "coord": {
+      "lat": 48.871714,
+      "lon": 2.22103
+    },
     "weightStepIn": 3,
     "weightStepOut": 2
   },
   {
     "id": "stop_point:OIF:SP:8738238:800:L",
     "name": "Gare de Puteaux",
+    "coord": {
+      "lat": 48.883384,
+      "lon": 2.233692
+    },
     "weightStepIn": 2,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738221:800:L",
     "name": "Gare de la Défense",
+    "coord": {
+      "lat": 48.892187,
+      "lon": 2.237018
+    },
     "weightStepIn": 5,
     "weightStepOut": 13
   },
   {
     "id": "stop_point:OIF:SP:8738220:800:L",
     "name": "Gare de Courbevoie",
+    "coord": {
+      "lat": 48.898119,
+      "lon": 2.247943
+    },
     "weightStepIn": 2,
     "weightStepOut": 1
   },
   {
     "id": "stop_point:OIF:SP:8738200:800:L",
     "name": "Gare de Becon les Bruyères",
+    "coord": {
+      "lat": 48.905763,
+      "lon": 2.269965
+    },
     "weightStepIn": 2,
     "weightStepOut": 3
   },
   {
     "id": "stop_point:OIF:SP:8738113:800:L",
     "name": "Gare d'Asnières",
+    "coord": {
+      "lat": 48.905664,
+      "lon": 2.283573
+    },
     "weightStepIn": 3,
     "weightStepOut": 2
   },
   {
     "id": "stop_point:OIF:SP:8738112:800:L",
     "name": "Gare de Clichy Levallois",
+    "coord": {
+      "lat": 48.897637,
+      "lon": 2.29742
+    },
     "weightStepIn": 3,
     "weightStepOut": 2
   },
   {
     "id": "stop_point:OIF:SP:8738111:800:L",
     "name": "Pont Cardinet",
+    "coord": {
+      "lat": 48.88822,
+      "lon": 2.313732
+    },
     "weightStepIn": 3,
     "weightStepOut": 2
   },
   {
     "id": "stop_point:OIF:SP:8738400:800:L",
     "name": "Gare Saint-Lazare",
+    "coord": {
+      "lat": 48.876837,
+      "lon": 2.324738
+    },
     "weightStepIn": 0,
     "weightStepOut": -1
   }

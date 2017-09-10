@@ -12,7 +12,7 @@ moment.locale('fr');
 // generate week days, starting from monday
 const weekdays = moment.weekdays(true);
 
-import {PeriodType, Period, SelectedStopPoint} from './reducers';
+import {PeriodType, Period, SelectedStopPoint, TimeSlot, Route} from './reducers';
 import {
   filterTripsOfStopPoint,
   stepInByPeriod,
@@ -23,20 +23,18 @@ import {
   filterStopPointByMonth,
   filterStopPointByWeek,
   gaterWeeksOfStopPoints,
-  groupTrainByHour
+  groupTrainsByHour
 } from '../../../data';
 
 import 'react-datepicker/dist/react-datepicker.css';
 import './StopPointTraveller.scss';
 
 interface Props {
-  selectedStopPoint: SelectedStopPoint,
+  selectedStopPoint: SelectedStopPoint;
 
-  periodTypeSelected: (selection: Period) => void
-}
-
-interface State {
-  timeSlot: [ Date, Date ] | null
+  periodTypeSelected: (selection: Period) => void;
+  timeSlotSelected: (timeSlot: TimeSlot | null) => void;
+  routeSelected: (route: Route) => void;
 }
 
 interface ChartState {
@@ -49,8 +47,6 @@ interface ChartState {
    * true while the brush is moved by code
    */
   brushMoving: boolean;
-
-  updateBrush(xZoomedScale: d3.ScaleTime<Date, number>): void;
 
   update(): void;
 }
@@ -80,17 +76,13 @@ function formatTimeSlotDate(date: Date) {
   return date.toLocaleTimeString('fr', {hour: '2-digit', minute: '2-digit'});
 }
 
-export default class StopPointTraveller extends React.PureComponent<Props, State> {
-  state = {
-    timeSlot: null
-  };
-
+export default class StopPointTraveller extends React.PureComponent<Props> {
   /**
    * Holds the state of the chart
    * - create the static structure only once
    * - captures the current state to react to the wheel event
    */
-  chartState: ChartState = {rootNode: null, brushMoving: false, updateBrush: () => {}, update: () => {}};
+  chartState: ChartState = {rootNode: null, brushMoving: false, update: () => {}};
 
   renderChart = (node: HTMLElement, selectedTrips: StepInByPeriod[]) => {
 
@@ -139,34 +131,18 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                         // only interested in user-initiated events
                         if (this.chartState.brushMoving) return;
 
-                        this.chartState.updateBrush = () => {};
-
-                        this.setState({
-                          timeSlot: null
-                        });
+                        this.props.timeSlotSelected(null);
                       })
 
                       // on end, register a new brush update function with the selected dates
                       .on('brush end', () => {
                         // only interested in user-initiated events
-                        if (this.chartState.brushMoving) return;
+                        if (this.chartState.brushMoving || d3.event.selection === null) return;
 
                         const scale = d3.zoomTransform($dataGroup.node() as SVGElement).rescaleX(xScale as any);
                         const selectedZone = (d3.event.selection as [ number, number ]).map((v: number) => scale.invert(v)) as [ Date, Date ];
 
-                        this.chartState.updateBrush = (xZoomedScale: d3.ScaleTime<Date, number>) => {
-                          try {
-                            this.chartState.brushMoving = true;
-                            brush.move($dataGroup as any, selectedZone.map(d => xZoomedScale(d)) as d3.BrushSelection);
-                          }
-                          finally {
-                            this.chartState.brushMoving = false;
-                          }
-                        };
-
-                        this.setState({
-                          timeSlot: selectedZone
-                        });
+                        this.props.timeSlotSelected(selectedZone);
                       });
 
       const $dataGroup = $svg.append('g')
@@ -182,6 +158,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                              .call(zoom)
 
                              // brushing: the event is attached to the ancestor of the bars
+                             .property('selectionBrush', () => brush)
                              .call(brush);
 
       const $axesGroup = $svg.append('g')
@@ -269,7 +246,16 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
       $$bars.exit()
             .remove();
 
-      this.chartState.updateBrush(xZoomedScale);
+      const brush = $dataGroup.property('selectionBrush');
+      if (brush) {
+        try {
+          this.chartState.brushMoving = true;
+          brush.move($dataGroup as any, this.props.selectedStopPoint.timeSlot && this.props.selectedStopPoint.timeSlot.map(d => xZoomedScale(d)) as d3.BrushSelection);
+        }
+        finally {
+          this.chartState.brushMoving = false;
+        }
+      }
     };
 
     // initial rendering, after the component has been refreshed
@@ -288,7 +274,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
       const periodType = this.props.selectedStopPoint.period.type;
       const filteredByStopPoint = filterTripsOfStopPoint(this.props.selectedStopPoint.stopPoint.id);
 
-      const trips = groupTrainByHour((() => {
+      const trips = groupTrainsByHour((() => {
 
         if (this.props.selectedStopPoint.period.value !== null) {
 
@@ -331,15 +317,24 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                 <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
               </div>
               <div className="stop-point-traveller-tools-flux">
-                <span>Visualisation du flux de voyageurs sur la ligne</span>
-                {
-                  (() => {
-                    if (this.state.timeSlot !== null) {
-                      const timeSlot = this.state.timeSlot! as [ Date, Date ];
-                      return <span>{ ` entre ${ formatTimeSlotDate(timeSlot[ 0 ]) } et ${ formatTimeSlotDate(timeSlot[ 1 ]) }` }</span>;
-                    }
-                  })()
-                }
+                <span>
+                  Visualisation du flux de voyageurs sur la ligne
+                  entre { this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 0 ]) || '--' }
+                  { " et " }{ this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 1 ]) || '--' }
+                </span>
+                <div className="stop-point-traveller-tools-commands">
+                  <button disabled={ this.props.selectedStopPoint.selectedRoute === null }><i className="fa fa-play"/></button>
+                </div>
+              </div>
+              <div className="stop-point-traveller-tools-routes">
+                { this.props.selectedStopPoint.routes.map(r =>
+                  <label key={ r.id }>
+                    <input type="radio"
+                           name="select-route"
+                           onChange={ () => this.props.routeSelected(r) }
+                           checked={ r.id === this.props.selectedStopPoint.selectedRoute }
+                    />{ r.name }</label>
+                ) }
               </div>
             </div>
             <div className="stop-point-traveller-chart"

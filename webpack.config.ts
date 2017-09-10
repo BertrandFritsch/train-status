@@ -105,7 +105,7 @@ config = {
         use: [ 'style-loader', 'css-loader', 'sass-loader' ]
       },
       {
-        test: /\.(jpe?g|png|gif|svg|pdf)$/i,
+        test: /\.(jpe?g|png|gif|woff|woff2|eot|ttf|svg|pdf)$/i,
         use: [
           {
             loader: 'file-loader',
