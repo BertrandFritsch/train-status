@@ -207,7 +207,7 @@ function* loadStopPointConnection() {
     const action = yield statusActionTake([ ActionTypes.STOP_POINT_SELECTED, ActionTypes.MAP_ZOOMED ]);
 
     if (action.type === ActionTypes.STOP_POINT_SELECTED && oldDefenseSelected !== (defenseSelected = action.payload.id === 'stop_point:OIF:SP:8738221:800:L')
-    || action.type === ActionTypes.MAP_ZOOMED && oldzoom !== (zoom = action.payload)) {
+        || action.type === ActionTypes.MAP_ZOOMED && oldzoom !== (zoom = action.payload)) {
       yield statusActionPut({
         type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseSelected ? defenseData.filter((connection) => {
           if (zoom > 12 && zoom < 17 && connection.zoom == 2) {
@@ -244,7 +244,7 @@ export default function* () {
     call(loadLineData),
     call(loadStopPoints),
     call(loadStopPointRoutes),
-    call(loadStopPointConnection)
- //   call(initStatus)
+    call(loadStopPointConnection) //,
+    // call(initStatus)
   ];
 }

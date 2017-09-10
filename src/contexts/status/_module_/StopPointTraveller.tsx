@@ -6,6 +6,7 @@ import Dock from 'react-dock';
 import DatePicker from 'react-datepicker';
 import * as moment from 'moment';
 import * as d3 from 'd3';
+import {shiftMinutesToToday} from '../../../data';
 
 moment.locale('fr');
 
@@ -35,6 +36,7 @@ interface Props {
   periodTypeSelected: (selection: Period) => void;
   timeSlotSelected: (timeSlot: TimeSlot | null) => void;
   routeSelected: (route: Route) => void;
+  timeRunningToggled: (date: Date | null) => void;
 }
 
 interface ChartState {
@@ -49,6 +51,8 @@ interface ChartState {
   brushMoving: boolean;
 
   update(): void;
+
+  getTimeRunningCursorPosition(): Date;
 }
 
 const width = 400;
@@ -82,7 +86,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
    * - create the static structure only once
    * - captures the current state to react to the wheel event
    */
-  chartState: ChartState = {rootNode: null, brushMoving: false, update: () => {}};
+  chartState: ChartState = {rootNode: null, brushMoving: false, update: () => {}, getTimeRunningCursorPosition: () => new Date()};
 
   renderChart = (node: HTMLElement, selectedTrips: StepInByPeriod[]) => {
 
@@ -161,6 +165,24 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                              .property('selectionBrush', () => brush)
                              .call(brush);
 
+      $dataGroup.append('g')
+                .attr('class', 'stop-point-traveller-data-bars');
+
+      $dataGroup.append('line')
+                .attr('class', 'stop-point-traveller-timezone-start')
+                .attr('y1', 0)
+                .attr('y2', height);
+
+      $dataGroup.append('line')
+                .attr('class', 'stop-point-traveller-timezone-end')
+                .attr('y1', 0)
+                .attr('y2', height);
+
+      $dataGroup.append('line')
+                .attr('class', 'stop-point-traveller-time-position')
+                .attr('y1', 0)
+                .attr('y2', height);
+
       const $axesGroup = $svg.append('g')
                              .attr('class', 'stop-point-traveller-axis');
 
@@ -210,8 +232,10 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
               .attr("dy", -2);
           });
 
-      let $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
-                             .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+      let $$bars = $dataGroup
+        .select('.stop-point-traveller-data-bars')
+        .selectAll('rect.stop-point-traveller-data-bar')
+        .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
 
       // cancel any former ongoing transition
       $$bars.interrupt();
@@ -256,6 +280,71 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
           this.chartState.brushMoving = false;
         }
       }
+
+      const timeZonePositions = (() => {
+        if (this.props.selectedStopPoint.timeSlotTrains !== null) {
+          // the timezone starts with the departure of the first train
+          const trains = this.props.selectedStopPoint.timeSlotTrains.trains;
+          const beginDate = shiftMinutesToToday(trains[ 0 ][ 0 ].date);
+
+          // ... and stops with the arrival of the last train
+          const endDate = shiftMinutesToToday(trains[ trains.length - 1 ][ trains[ trains.length - 1 ].length - 1 ].date);
+
+          return {
+            start: xZoomedScale(beginDate),
+            end: xZoomedScale(endDate),
+            cursor: xZoomedScale(this.props.selectedStopPoint.timeSlotTrains.timePosition)
+          };
+        }
+        else {
+          return {start: 0, end: 0, cursor: 0};
+        }
+      })();
+
+      $dataGroup.select('line.stop-point-traveller-timezone-start')
+                .attr('x1', timeZonePositions.start)
+                .attr('x2', timeZonePositions.start);
+
+      $dataGroup.select('line.stop-point-traveller-timezone-end')
+                .attr('x1', timeZonePositions.end)
+                .attr('x2', timeZonePositions.end);
+
+      const $cursor = $dataGroup.select('line.stop-point-traveller-time-position');
+
+      $cursor.interrupt();
+      $cursor
+        .attr('x1', timeZonePositions.cursor)
+        .attr('x2', timeZonePositions.cursor);
+
+      if (this.props.selectedStopPoint.timeSlotTrains && this.props.selectedStopPoint.timeSlotTrains.timeRunning) {
+        const cycleTimeRunningAnimation = (pos: number) => {
+          $cursor
+            .attr('x1', pos)
+            .attr('x2', pos)
+            .transition()
+            .ease(d3.easeLinear)
+            .duration((timeZonePositions.end - pos) * 30000 / (timeZonePositions.end - timeZonePositions.start))
+            .attr('x1', timeZonePositions.end)
+            .attr('x2', timeZonePositions.end)
+            .on('end', () => cycleTimeRunningAnimation(timeZonePositions.start));
+        };
+
+        cycleTimeRunningAnimation(timeZonePositions.cursor);
+      }
+    };
+
+    const getTimeRunningCursorPosition = () => {
+
+      const $dataGroup = d3.select('g.stop-point-traveller-data');
+      const zoomTransform = d3.zoomTransform($dataGroup.node() as SVGElement);
+      const $cursor = $dataGroup.select('line.stop-point-traveller-time-position');
+
+      $cursor.interrupt();
+
+      // apply the transformation of the x-axis
+      const xZoomedScale = zoomTransform.rescaleX(xScale as any);
+
+      return xZoomedScale.invert($cursor.attr('x1'));
     };
 
     // initial rendering, after the component has been refreshed
@@ -264,7 +353,8 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
     return {
       ...this.chartState,
       rootNode,
-      update: chartUpdate
+      update: chartUpdate,
+      getTimeRunningCursorPosition
     }
   };
 
@@ -323,7 +413,15 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                   { " et " }{ this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 1 ]) || '--' }
                 </span>
                 <div className="stop-point-traveller-tools-commands">
-                  <button disabled={ this.props.selectedStopPoint.selectedRoute === null }><i className="fa fa-play"/></button>
+                  <button disabled={ this.props.selectedStopPoint.timeSlotTrains === null }
+                          onClick={ () => this.props.timeRunningToggled(this.chartState.getTimeRunningCursorPosition()) }>
+                    <i
+                      className={ `fa ${ this.props.selectedStopPoint.timeSlotTrains && this.props.selectedStopPoint.timeSlotTrains.timeRunning ? 'fa-pause': 'fa-play' }` }/>
+                  </button>
+                  <button onClick={ () => this.props.timeRunningToggled(null) }>
+                    <i
+                      className="fa fa-stop"/>
+                  </button>
                 </div>
               </div>
               <div className="stop-point-traveller-tools-routes">
@@ -375,7 +473,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                   <option value=""/>
                   {
                     periodType === PeriodType.WEEK
-                      ? gaterWeeksOfStopPoints(filteredByStopPoint)
+                      ? gaterWeeksOfStopPoints()
                         .map((date, i) => (
                           <option key={ i } value={ date.toISOString() }>{ (() => {
                             const m = moment(date);

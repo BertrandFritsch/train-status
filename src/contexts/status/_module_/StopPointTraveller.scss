@@ -104,7 +104,23 @@ input[type~='radio'] {
 .stop-point-traveller-tools-commands {
   margin: 0 0 0 20px;
 
-  i {
-    margin-top: 1px;
+  button {
+    width: 30px;
+
+    i {
+      margin-top: 1px;
+    }
   }
+}
+
+.stop-point-traveller-timezone-start, .stop-point-traveller-timezone-end {
+  stroke-width: 1px;
+  stroke: rgba(0, 0, 185, 0.4);
+
+}
+
+.stop-point-traveller-time-position {
+  stroke-width: 2px;
+  stroke: rgb(0, 0, 185);
+
 }

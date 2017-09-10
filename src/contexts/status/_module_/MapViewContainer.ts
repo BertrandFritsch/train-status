@@ -13,7 +13,8 @@ const getProps = createSelector(
   (state: StatusState) => state.status.selectedStopPoint.routes,
   (state: StatusState) => state.status.selectedStopPoint.selectedRoute,
   (state: StatusState) => state.status.selectedStopPoint.stopPointConnections.length == 0 ? emptyArray : state.status.selectedStopPoint.stopPointConnections,
-  (lineData, stopPoints, selectedStopPoint, routes, selectedRoute, stopPointConnections) => {
+  (state: StatusState) => state.status.selectedStopPoint.timeSlotTrains,
+  (lineData, stopPoints, selectedStopPoint, routes, selectedRoute, stopPointConnections, timeSlotTrains) => {
     const route = routes.find(r => r.id === selectedRoute);
 
     return {
@@ -23,7 +24,8 @@ const getProps = createSelector(
       },
       stopPoints: route === undefined ? stopPoints : route.stopPoints,
       selectedStopPoint,
-      stopPointConnections
+      stopPointConnections,
+      timeSlotTrains
     };
   }
 );

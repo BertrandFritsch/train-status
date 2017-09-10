@@ -51,15 +51,19 @@ export type TimeSlot = [ Date, Date ];
 
 export type TimeSlotTrain = TripStopPoint[];
 
+export type TimeSlotTrains = {
+  trains: TimeSlotTrain[];
+  timePosition: Date;   // last fixed position
+  timeRunning: boolean;
+};
+
 export interface SelectedStopPoint {
   stopPoint: StopPoint | null;
   period: Period;
   routes: Route[];
   selectedRoute: string | null;
   timeSlot: TimeSlot | null;
-  timeSlotTrains: TimeSlotTrain[];
-  timePosition: number;        // last fixed position in milliseconds since the start date
-  timeRunning: Date | null;    // Date => time is running; date when the time has started running at timePosition
+  timeSlotTrains: TimeSlotTrains | null;
   stopPointConnections: StopPointConnections;
 }
 
@@ -109,9 +113,7 @@ const initialState: State = {
     routes: [],
     selectedRoute: null,
     timeSlot: null,
-    timeSlotTrains: [],
-    timePosition: 0,
-    timeRunning: null,
+    timeSlotTrains: null,
     stopPointConnections: []
   },
   error: null
@@ -159,10 +161,32 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, selectedRoute: action.payload.id } };
 
     case ActionTypes.TIMESLOT_TRAINS_UPDATED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, timeSlotTrains: action.payload } };
+      return {
+        ...locState,
+        selectedStopPoint: {
+          ...locState.selectedStopPoint,
+          timeSlotTrains: action.payload.length > 0 ? { trains: action.payload, timePosition: action.payload[ 0 ][ 0 ].date, timeRunning: false } : null
+        }
+      };
+
+    case ActionTypes.TIME_RUNNING_TOGGLED: {
+      return {
+        ...locState,
+        selectedStopPoint: {
+          ...locState.selectedStopPoint,
+          timeSlotTrains: locState.selectedStopPoint.timeSlotTrains !== null
+            ? {
+              ...locState.selectedStopPoint.timeSlotTrains,
+              timePosition: action.payload !== null ? action.payload : locState.selectedStopPoint.timeSlotTrains.trains[ 0 ][ 0 ].date,
+              timeRunning: action.payload !== null && !locState.selectedStopPoint.timeSlotTrains.timeRunning
+            }
+            : null
+        }
+      };
+    }
 
     case ActionTypes.STOP_POINT_CONNECTION_LOADED:
-     return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPointConnections: action.payload } };
+      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPointConnections: action.payload } };
 
     default:
       return locState;

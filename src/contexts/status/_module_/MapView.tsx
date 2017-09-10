@@ -2,19 +2,21 @@ import * as React from 'react';
 import * as d3 from 'd3';
 
 import './MapView.scss';
-import { LineData, StopPoints, StopPoint, StopPointConnections } from './reducers';
+import {LineData, StopPoints, StopPoint, TimeSlotTrains, TimeSlotTrain, StopPointConnections } from './reducers';
+import {TripStopPoint} from "../../../data";
 
 const STOP_POINTS_RAYON: number = 4.5;
-const LAYER_MARGIN: number = STOP_POINTS_RAYON * 3;
+const LAYER_MARGIN: number = STOP_POINTS_RAYON * 6;
 
 interface Props {
-  lineData: LineData,
-  stopPoints: StopPoints,
-  selectedStopPoint: StopPoint,
-  stopPointConnections: StopPointConnections,
+  lineData: LineData;
+  stopPoints: StopPoints;
+  selectedStopPoint: StopPoint;
+  timeSlotTrains: TimeSlotTrains | null;
+  stopPointConnections: StopPointConnections;
 
-  onStopPointSelected: (stopPoint: StopPoint) => void,
-  onMapZoomed: (zoom: number) => void,
+  onStopPointSelected: (stopPoint: StopPoint) => void;
+  onMapZoomed: (zoom: number) => void;
 }
 
 interface OverlayActions {
@@ -95,20 +97,24 @@ function completeStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint
  * @param { StopPoint } selectedStopPoint
  * @returns [{ data: StopPointConnections, connections: {latLngs: google.maps.LatLng[], color: string}[] }]
  */
- function completeStopPointConnections(stopPointConnections: StopPointConnections, selectedStopPoint: StopPoint) {
-   const selectedStopPointLatLng = new google.maps.LatLng(selectedStopPoint.coord[0], selectedStopPoint.coord[1]);
+function completeStopPointConnections(stopPointConnections: StopPointConnections, selectedStopPoint: StopPoint) {
+  const selectedStopPointLatLng = new google.maps.LatLng(selectedStopPoint.coord[0], selectedStopPoint.coord[1]);
 
-   return {
-     data: stopPointConnections,
-     connections: stopPointConnections.reduce(
-       (acc, connection) => [ ...acc, ...connection.stops.map(
-         stop => ({
-           latLngs: [ selectedStopPointLatLng, new google.maps.LatLng(stop.coord.lat, stop.coord.lng) ],
-           color: connection.color
-         })
-       ) ], []
-     )
-   };
+  return {
+    data: stopPointConnections,
+    connections: stopPointConnections.reduce(
+      (acc, connection) => [ ...acc, ...connection.stops.map(
+        stop => ({
+          latLngs: [ selectedStopPointLatLng, new google.maps.LatLng(stop.coord.lat, stop.coord.lng) ],
+          color: connection.color
+        })
+      ) ], []
+    )
+  };
+}
+
+function hypot(a: { x: number, y: number }, b: { x: number, y: number }) {
+  return Math.hypot(a.y - b.y, b.x - a.x);
 }
 
 class LineOverlayView extends google.maps.OverlayView {
@@ -140,16 +146,17 @@ class LineOverlayView extends google.maps.OverlayView {
   /**
    * The selected stop point connections
    */
-   _stopPointConnections: { data: StopPointConnections, connections: {latLngs: google.maps.LatLng[], color: string}[] };
+  _stopPointConnections: { data: StopPointConnections, connections: {latLngs: google.maps.LatLng[], color: string}[] };
 
+  _timeSlotTrains: TimeSlotTrains | null = null;
 
   constructor(actions: OverlayActions) {
     super();
 
     this._actions = actions;
     this._bounds = new google.maps.LatLngBounds();
-    this._lineData = { data: { color: '000000', coordinates: [] }, latLngs: [] };
-    this._stopPoints = { data: [], latLngs: [] };
+    this._lineData = {data: {color: '000000', coordinates: []}, latLngs: []};
+    this._stopPoints = {data: [], latLngs: []};
     this._stopPointConnections = { data: [], connections: [] };
   }
 
@@ -274,10 +281,8 @@ class LineOverlayView extends google.maps.OverlayView {
         const ld = projection.fromLatLngToDivPixel(d.latLng);
         return ld.y - layerCoords.ne.y;
       })
-      // .attr('stroke', `#${lineData.color}`)
-      // .attr('stroke-width', 1.5)
       .attr('fill', 'node')
-      .on('mouseover', function(d) {
+      .on('mouseover', function (d) {
         if (!d.isSelected) {
           d3.select(this)
             .transition()
@@ -285,7 +290,7 @@ class LineOverlayView extends google.maps.OverlayView {
             .attr('r', STOP_POINTS_RAYON * 3);
         }
       })
-      .on('mouseout', function(d) {
+      .on('mouseout', function (d) {
         if (!d.isSelected) {
           d3.select(this)
             .transition()
@@ -336,37 +341,273 @@ class LineOverlayView extends google.maps.OverlayView {
 
       .attr('fill', 'none');
   }
+
+  updateTrains(timeSlotTrains: TimeSlotTrains | null) {
+    if (timeSlotTrains !== this._timeSlotTrains) {
+      this._timeSlotTrains = timeSlotTrains;
+
+      if (this._hasDrawn) {
+        this.drawTrains();
+      }
+    }
+  }
+
+  private drawTrains() {
+    const projection = this.getProjection();
+    const layerCoords = this.getLayerCoords();
+
+    /**
+     * Compute the distance between 2 consecutive stop points
+     */
+    function distanceFromToStopPoint(stopPoints: { stopPoint: StopPoint, distance: number }[], stopPoint1: TripStopPoint, stopPoint2: TripStopPoint) {
+      let distance = 0;
+      let coord = null;
+
+      for (let i = 0, iEnd = stopPoints.length; i < iEnd; ++i) {
+        if (distance === 0) {
+          // assume if the distance is still at 0 => stopPoint1 has not been reached
+          if (stopPoints[ i ].stopPoint.id === stopPoint1.id) {
+            distance = stopPoints[ i ].distance;
+            coord = stopPoints[ i ].stopPoint.coord;
+          }
+        }
+        else if (stopPoints[ i ].stopPoint.id === stopPoint2.id) {
+          break;
+        }
+        else {
+          // assume if the distance is greather than 0 and distance2 has not been reached => the train doesn't stop at those points
+          distance += stopPoints[ i ].distance;
+        }
+      }
+
+      return { distance, coord };
+    }
+
+    /**
+     * Completes the time slot train structure with the distance between 2 consecutive stop points
+     */
+    function completeTrains(trains: TimeSlotTrain[], stopPoints: { stopPoint: StopPoint, isSelected: boolean, latLng: google.maps.LatLng }[], projection: google.maps.MapCanvasProjection) {
+      const completedStopPoints = stopPoints.map((sp, i) => ({
+        stopPoint: sp.stopPoint,
+        distance: i < stopPoints.length - 1 ? hypot(projection.fromLatLngToDivPixel(sp.latLng), projection.fromLatLngToDivPixel(stopPoints[ i + 1 ].latLng)) : 0
+      }));
+
+      return trains.map(train => {
+        const trip = train.map((trip, i) => {
+          return {
+            ...trip,
+            geo: distanceFromToStopPoint(completedStopPoints, trip, train[ i + 1 ])
+          }
+        });
+
+        return {
+          distanceTotal: trip.reduce((acc, sp) => acc + sp.geo.distance, 0),
+          trip
+        };
+      });
+    }
+
+    const line = d3.select('.lines > .line').node() as SVGPathElement | null;
+    if (line !== null) {
+
+      // the trains
+      const $trains = d3.select(this._layerNode)
+                        .select('.trains')
+                        .selectAll('.train')
+                        .data(this._timeSlotTrains === null ? [] : completeTrains(this._timeSlotTrains.trains, this._stopPoints.latLngs, projection), (d: { trip: { date: Date }[]}) => `${d.trip[ 0 ].date.toLocaleTimeString()}-${ d.trip.length }`);
+
+      $trains.interrupt();
+
+      const $updatingTrains = $trains
+        .enter()
+        .append('circle')
+        .attr('class', 'train')
+        .attr('fill', () => `#${this._lineData.data.color}`)
+        .merge($trains);
+
+      const timeSlotTrains = this._timeSlotTrains;
+
+      if (timeSlotTrains !== null) {
+
+        const timeZoneDepartureTime = timeSlotTrains.trains[ 0 ][ 0 ].date.getTime();
+        const timeZoneArrivalTime = timeSlotTrains.trains[ timeSlotTrains.trains.length - 1 ][ timeSlotTrains.trains[ timeSlotTrains.trains.length - 1 ].length -1 ].date.getTime();
+        const timeZoneDuration = timeZoneArrivalTime - timeZoneDepartureTime;
+
+        $updatingTrains
+          .each(function(d) {
+            const $circle = d3.select(this);
+
+            const currentPosition: { latLng: google.maps.LatLng, nextStopPoint: number } = $circle.property('__currentPosition');
+            let nextStopPoint = currentPosition
+              // creation phase: determining the train position according to the position on the path
+              ? (() => {
+                // set the circle on the last known position
+                const pt = projection.fromLatLngToDivPixel(currentPosition.latLng);
+                $circle.attr('transform', `translate(${pt.x - layerCoords.sw.x},${pt.y - layerCoords.ne.y})`);
+                return currentPosition.nextStopPoint;
+              })()
+              // ... or to the time given by the cursor
+              : d.trip.findIndex(t => timeSlotTrains.timePosition.getTime() < t.date.getTime());
+
+            // nextStopPoint === 0 => The train has not yet started
+
+            if (nextStopPoint === -1) {
+              // means that the train has reached its destination
+              nextStopPoint = d.trip.length;
+            }
+
+            const updateTravellers = (nbOfStopPoints: number) => {
+
+              // determine the size of the train according to the number of travellers
+              const stepped = d.trip.slice(0, nbOfStopPoints).reduce((acc, sp) => acc - (sp.stepOut < 0 ? acc : sp.stepOut) + sp.stepIn, 0);
+
+              $circle
+                .transition('train-passengers')
+                .duration(300)
+                .attr('r', STOP_POINTS_RAYON + stepped * (STOP_POINTS_RAYON * 6 - STOP_POINTS_RAYON) / 2000);
+
+              // Add the number of travellers as tooltip
+              $circle.select('title')
+                     .remove();
+
+              $circle.append('title')
+                     .text(`${stepped} passagers`);
+            };
+
+            const continueToTheNextStopPoint = (timePosition: Date, trainPosition: number, distance: number, nextStopPoint: number) => {
+
+              const params = (() => {
+                const departureDelay = Math.max(0, d.trip[ 0 ].date.getTime() - timePosition.getTime()) * 30000 / timeZoneDuration;
+
+                if (nextStopPoint === d.trip.length) {
+
+                  // wait until the end of the timezone and the departure of train
+                  // prepare for the first segment
+                  return {
+                    delay: (Math.max(0, timeZoneArrivalTime - Math.max(timePosition.getTime(), d.trip[ d.trip.length - 1 ].date.getTime()))) * 30000 / timeZoneDuration + departureDelay,
+                    nextStopPoint: 1,
+                    timePosition: d.trip[ 0 ].date,
+                    trainPosition: 0,
+                    distance: d.trip[ 0 ].geo.distance
+                  }
+                }
+
+                else if (nextStopPoint === 1) {
+                  // wait until the departure of the train
+                  return {
+                    delay: departureDelay,
+                    nextStopPoint,
+                    timePosition,
+                    trainPosition,
+                    distance
+                  }
+                }
+
+                return {
+                  delay: 0,
+                  nextStopPoint,
+                  timePosition,
+                  trainPosition,
+                  distance
+                }
+                  ;
+              })();
+
+              const trainPositionOnLine = params.trainPosition * line.getTotalLength() / d.distanceTotal;
+              const segmentLength = params.distance * line.getTotalLength() / d.distanceTotal;
+
+              $circle
+                .transition()
+                .delay(params.delay)
+                .duration((d.trip[ params.nextStopPoint ].date.getTime() - Math.max(d.trip[ params.nextStopPoint - 1 ].date.getTime(), params.timePosition.getTime())) * 30000 / timeZoneDuration)
+                .attrTween('transform', () => (t: number) => {
+                  const pt = line.getPointAtLength(trainPositionOnLine + t * segmentLength);
+                  // store the GPS coords to be abble to move it after the card has been zoomed
+                  $circle.property('__currentPosition', { latLng: projection.fromDivPixelToLatLng(new google.maps.Point(layerCoords.sw.x + pt.x, layerCoords.ne.y + pt.y)), nextStopPoint: params.nextStopPoint });
+                  return `translate(${pt.x},${pt.y})`;
+                })
+                .on('start', () => updateTravellers(params.nextStopPoint))
+                .on('end', () => {
+                  if (params.nextStopPoint === d.trip.length - 1) {
+                    updateTravellers(params.nextStopPoint + 1);
+                  }
+
+                  const currentPosition: { latLng: google.maps.LatLng, nextStopPoint: number } = $circle.property('__currentPosition');
+                  $circle.property('__currentPosition', { ...currentPosition, nextStopPoint: d.trip.length });
+
+                  continueToTheNextStopPoint(params.nextStopPoint === d.trip.length - 1 && d.trip[ params.nextStopPoint ].date.getTime() === timeZoneArrivalTime ? new Date(timeZoneDepartureTime) : d.trip[ params.nextStopPoint ].date , d.trip.slice(0, params.nextStopPoint).reduce((acc, t) => acc + t.geo.distance, 0), d.trip[ params.nextStopPoint ].geo.distance, params.nextStopPoint + 1);
+                });
+            };
+
+            if (timeSlotTrains.timeRunning) {
+              const transform = $circle.attr('transform');
+              const matches = transform.match(/translate\((-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\)/);
+
+              if (nextStopPoint === 0) {
+                nextStopPoint = 1;
+              }
+
+              const spCoord = projection.fromLatLngToDivPixel(new google.maps.LatLng(d.trip[ nextStopPoint - 1 ].geo.coord![ 0 ], d.trip[ nextStopPoint - 1 ].geo.coord![ 1 ]));
+              const trainPositionAfterStopPoint = hypot({
+                x: spCoord.x - layerCoords.sw.x,
+                y: spCoord.y - layerCoords.ne.y
+              }, {x: parseInt(matches![ 1 ]), y: parseInt(matches![ 2 ])});
+
+              continueToTheNextStopPoint(timeSlotTrains.timePosition, d.trip.slice(0, nextStopPoint - 1).reduce((acc, t) => acc + t.geo.distance, 0) + trainPositionAfterStopPoint, d.trip[ nextStopPoint - 1 ].geo.distance - trainPositionAfterStopPoint, nextStopPoint);
+            }
+            else if (timeSlotTrains.timePosition.getTime() === timeZoneDepartureTime) {
+              // stop event
+              updateTravellers(0);
+              $circle.attr('transform', () => {
+                const pt = line.getPointAtLength(0);
+                $circle.property('__currentPosition', { latLng: projection.fromDivPixelToLatLng(new google.maps.Point(layerCoords.sw.x + pt.x, layerCoords.ne.y + pt.y)), nextStopPoint: 1 });
+                return `translate(${pt.x},${pt.y})`;
+              });
+            }
+          });
+      }
+
+      $trains.exit()
+             .remove();
+    }
+  }
+
   // OverlayView interface
   onAdd() {
     if (!this._layerNode) {
       const layer = d3.select(this.getPanes().overlayMouseTarget)
-                          .append('svg')
-                          .attr('class', 'stations');
+                      .append('svg')
+                      .attr('class', 'stations');
 
       this._layerNode = layer.node() as Element;
 
       layer
-          .append('defs').append('marker')
-          .attr('id', 'arrow')
-          .attr('refX', 0)
-          .attr('refY', 2.5)
-          .attr('markerWidth', 5)
-          .attr('markerHeight', 5)
-          .attr('orient', 'auto')
-          .append('path')
-          .attr('d', 'M0,0 L5,2.5 L0,5 Z')
-          .attr("class", "arrow");
+        .append('defs').append('marker')
+        .attr('id', 'arrow')
+        .attr('refX', 0)
+        .attr('refY', 2.5)
+        .attr('markerWidth', 5)
+        .attr('markerHeight', 5)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,0 L5,2.5 L0,5 Z')
+        .attr("class", "arrow");
 
       layer
-          .append('g')
-          .attr('class', 'lines');
+        .append('g')
+        .attr('class', 'lines');
 
       layer
-          .append('g')
-          .attr('class', 'stop-points');
+        .append('g')
+        .attr('class', 'stop-points');
+
       layer
-          .append('g')
-          .attr('class', 'stop-point-connections');
+        .append('g')
+        .attr('class', 'stop-point-connections');
+
+      layer
+        .append('g')
+        .attr('class', 'trains');
     }
   }
 
@@ -378,6 +619,7 @@ class LineOverlayView extends google.maps.OverlayView {
     this.drawLineData();
     this.drawStopPoints();
     this.drawStopPointConnections();
+    this.drawTrains();
   }
 }
 
@@ -399,11 +641,12 @@ export default class MapView extends React.PureComponent<Props> {
     // Create the Google Map…
     const map = this._map || (this._map = createMap(node, this.props.onMapZoomed));
 
-    const overlay = this._overlay || (this._overlay = createOverlay(map, { onStopPointSelected: this.props.onStopPointSelected }));
+    const overlay = this._overlay || (this._overlay = createOverlay(map, {onStopPointSelected: this.props.onStopPointSelected}));
 
     overlay.updateLineData(this.props.lineData);
     overlay.updateStopPoints(this.props.stopPoints, this.props.selectedStopPoint);
     overlay.updateStopPointConnections(this.props.stopPointConnections, this.props.selectedStopPoint);
+    overlay.updateTrains(this.props.timeSlotTrains);
   };
 
   render() {

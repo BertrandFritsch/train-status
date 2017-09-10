@@ -118,7 +118,7 @@ export function groupTrainsByHour(stops: TripStopPoint[]) {
 }
 
 export function groupTripsByHour(trips: Trip[]) {
-  const hour0 = new Date().getTime() - MILLISECONDS_PER_TIMEZONEOFFSET % MILLISECONDS_PER_DAY;
+  const hour0 = (new Date().getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
 
   const tripsByHour = trips.reduce((acc, trip) => {
 
@@ -139,7 +139,7 @@ export function groupTripsByHour(trips: Trip[]) {
     .sort()
     .map(time => {
       const trips = tripsByHour[ time ].trips;
-      const reducedTrips = trips[ 0 ].map(sp => ({ ...sp }));
+      const reducedTrips = trips[ 0 ].map(sp => ({ ...sp, date: shiftMinutesToToday(sp.date) }));
       for (let i = 0, iEnd = reducedTrips.length; i < iEnd; ++i) {
         for (let j = 1, jEnd = trips.length; j < jEnd; ++jEnd) {
           reducedTrips[i].stepIn += trips[j][i].stepIn;
@@ -177,7 +177,7 @@ export function filterStopPointByWeek<T extends { date: Date }>(trips: T[], date
   return trips.filter(trip => moment(trip.date).startOf('week').toDate().getTime() === date.getTime());
 }
 
-export function gaterWeeksOfStopPoints(tripsByStopPoint: TripStopPoint[]) {
+export function gaterWeeksOfStopPoints(/* tripsByStopPoint: TripStopPoint[] */) {
   // take all weeks of the year until 09/01
   const weeks = [];
 
@@ -203,4 +203,9 @@ export function gaterWeeksOfStopPoints(tripsByStopPoint: TripStopPoint[]) {
   //
   //   return acc;
   // }, ([] as Date[]));
+}
+
+export function shiftMinutesToToday(date: Date) {
+  const hour0 = moment().startOf('day').toDate().getTime();
+  return new Date(hour0 + (date.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY);
 }

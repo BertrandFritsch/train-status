@@ -10,7 +10,8 @@ export default connect(
   (dispatch: Dispatch<State>) => ({
     periodTypeSelected: (selection: Period): void => dispatch({ type: ActionTypes.PERIOD_SELECTED, payload: selection }),
     routeSelected: (route: Route): void => dispatch({ type: ActionTypes.ROUTE_SELECTED, payload: route }),
-    timeSlotSelected: (timeSlot: TimeSlot | null): void => dispatch({ type: ActionTypes.TIMESLOT_SELECTED, payload: timeSlot })
+    timeSlotSelected: (timeSlot: TimeSlot | null): void => dispatch({ type: ActionTypes.TIMESLOT_SELECTED, payload: timeSlot }),
+    timeRunningToggled: (date: Date | null): void => dispatch({ type: ActionTypes.TIME_RUNNING_TOGGLED, payload: date })
   }),
   (stateProps, dispatchProps) => ({
     ...stateProps,
