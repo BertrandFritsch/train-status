@@ -157,7 +157,8 @@ export default function* () {
   yield [
     throttle(500, ActionTypes.SUGGESTION_LINES_REQUESTED, fetchLines),
     call(loadLineData),
-    call(loadStopPoints) //,
+    call(loadStopPoints),
+    call(loadStopPointRoutes) //,
     // call(initStatus)
   ];
 }

@@ -343,7 +343,7 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                 ) }
               </div>
               <div className="stop-point-traveller-tools-commands">
-                <button><i className="fa fa-play fa-lg" /></button>
+                <button><i className="fa fa-play" /></button>
               </div>
             </div>
             <div className="stop-point-traveller-chart"
