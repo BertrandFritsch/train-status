@@ -85,10 +85,11 @@ input[type~='radio'] {
 }
 
 .stop-point-traveller-tools-flux {
-  width: 200px;
+  display: flex;
   margin: 20px;
 
-  label {
+  > span {
+    width: 200px;
   }
 }
 
@@ -101,7 +102,7 @@ input[type~='radio'] {
 }
 
 .stop-point-traveller-tools-commands {
-  margin: 20px;
+  margin: 0 0 0 20px;
 
   i {
     margin-top: 1px;

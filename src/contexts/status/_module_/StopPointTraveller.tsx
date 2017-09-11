@@ -336,14 +336,14 @@ export default class StopPointTraveller extends React.PureComponent<Props, State
                   entre { formatTimeSlotDate(this.state.timeSlot[ 0 ]) }
                   { " et " }{ formatTimeSlotDate(this.state.timeSlot[ 1 ]) }
                 </span>
+                <div className="stop-point-traveller-tools-commands">
+                  <button><i className="fa fa-play" /></button>
+                </div>
               </div>
               <div className="stop-point-traveller-tools-routes">
                 { this.props.selectedStopPoint.routes.map(r =>
                   <label key={ r.id }><input type="radio" name="select-route"/>{ r.name }</label>
                 ) }
-              </div>
-              <div className="stop-point-traveller-tools-commands">
-                <button><i className="fa fa-play" /></button>
               </div>
             </div>
             <div className="stop-point-traveller-chart"
