@@ -11,7 +11,7 @@ export interface State {
 }
 
 const initialState: State = {
-  loggedIn: false,
+  loggedIn: true,
   username: null
 };
 

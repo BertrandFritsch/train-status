@@ -3,7 +3,7 @@ import {throttle, call, take, put, select, PutEffect, TakeEffect, SelectEffect, 
 import callAPI, {CallAPIResult, CallAPIResultType} from '../../../server/callAPI';
 import ActionTypes, {StatusAction} from './actionTypes';
 import {getSelectedStopPoint} from './selectors';
-import {SelectedStopPoint, StatusState, PeriodType} from './reducers';
+import {SelectedStopPoint, StatusState, PeriodType, StopPointConnections, WifiConnections} from './reducers';
 import {
   filterTripsOfStopPointByTimeSlot,
   filterStopPointByYear,
@@ -23,6 +23,7 @@ const stopPointRoutesURI = (id: string) => `https://api.navitia.io/v1/coverage/f
 const authToken = '500e0590-34d8-45bc-8081-2da6fd3b7755';
 
 const stopPoints: { id: string, name: string, coord: { lat: number, lon: number } }[] = require('../../../../data/stops.json');
+const defenseData: StopPointConnections = require('../../../../data/defense-data.json');
 
 const STOP_POINT_VRD = {
   id: 'stop_point:OIF:SP:8738288:800:L',
@@ -32,7 +33,7 @@ const STOP_POINT_VRD = {
 
 // character-typed put function
 const statusActionPut = (action: StatusAction): PutEffect<StatusAction> => put(action);
-const statusActionTake = <StatusAction>(pattern: ActionTypes): TakeEffect => take(pattern);
+const statusActionTake = <StatusAction>(pattern: ActionTypes | ActionTypes[]): TakeEffect => take(pattern);
 const statusActionSelect = (selector: Func1<StatusState>): SelectEffect => select(selector);
 
 interface SNCFLines {
@@ -196,6 +197,37 @@ function* updateTrainsFromTimeSlot() {
   yield statusActionPut({type: ActionTypes.TIMESLOT_TRAINS_UPDATED, payload: trips});
 }
 
+function* loadStopPointConnection() {
+  let zoom = 0;
+  let selectedPoint = null;
+
+  for (;;) {
+    let oldzoom = zoom;
+    const action = yield statusActionTake([ActionTypes.STOP_POINT_SELECTED, ActionTypes.MAP_ZOOMED]);
+    if (action.type === ActionTypes.MAP_ZOOMED) {
+      zoom = action.payload;
+    }
+    else if (action.type === ActionTypes.STOP_POINT_SELECTED){
+      selectedPoint = action.payload;
+    }
+
+    if (!selectedPoint || selectedPoint.id !== 'stop_point:OIF:SP:8738221:800:L') {
+      yield statusActionPut( {type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload:[]} );
+    }
+    else if (selectedPoint && selectedPoint.id === 'stop_point:OIF:SP:8738221:800:L' && zoom != oldzoom ) {
+      yield statusActionPut( {type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseData.filter((connection) => {
+        if (zoom > 12 && zoom < 17 && connection.zoom == 2) {
+          return true;
+        }
+        else if (zoom >= 17) {
+          return true
+        }
+        return false;
+      })} );
+    }
+  }
+}
+
 function* initStatus() {
   yield statusActionPut({type: ActionTypes.SUGGESTION_LINE_REQUESTED, payload: line});
   yield statusActionPut({type: ActionTypes.STOP_POINT_SELECTED, payload: STOP_POINT_VRD});
@@ -216,7 +248,8 @@ export default function* () {
     throttle(500, [ ActionTypes.PERIOD_SELECTED, ActionTypes.ROUTE_SELECTED, ActionTypes.TIMESLOT_SELECTED ], updateTrainsFromTimeSlot),
     call(loadLineData),
     call(loadStopPoints),
-    call(loadStopPointRoutes) //,
-    // call(initStatus)
+    call(loadStopPointRoutes),
+    call(loadStopPointConnection),
+    call(initStatus)
   ];
 }

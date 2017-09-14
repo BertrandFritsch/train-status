@@ -1,0 +1,100 @@
+[
+  {
+    "label": "Métro 1",
+    "color": "F2C931",
+    "zoom": 2,
+    "stops": [
+        {
+        "name": "Esplanade de la Défense",
+        "coord": {
+          "lat": 48.888362,
+          "lng": 2.249955
+        },
+        "id": "stop_point:OIF:SP:59593"
+      }
+    ]
+  },
+  {
+    "label": "RER A",
+    "color": "D1302F",
+    "zoom": 2,
+    "stops": [
+      {
+        "name": "Charles de Gaulle Etoile",
+        "coord": {
+          "lat": 48.874238,
+          "lng": 2.294491
+        },
+        "id": "stop_point:OIF:SP:8775800:810:A"
+      },
+      {
+        "name": "Gare de Nanterre Préfecture",
+        "coord": {
+          "lat": 48.895745,
+          "lng": 2.223213
+        },
+        "id": "stop_point:OIF:SP:8775802:810:A"
+      }
+    ]
+  },
+  {
+    "label": "Tramway T2",
+    "color": "BB4D98",
+    "zoom": 2,
+    "stops": [
+      {
+        "name": "Puteaux",
+        "coord": {
+          "lat": 48.882893,
+          "lng": 2.233476
+        },
+        "id": "stop_point:OIF:SP:59029"
+      },
+      {
+        "name": "Faubourg de l'Arche",
+        "coord": {
+          "lat": 48.896883,
+          "lng": 2.240427
+        },
+        "id": "stop_point:OIF:SP:59709"
+      }
+    ]
+  },
+  {
+    "label": "Antenne Wifi",
+    "color": "000000",
+    "zoom": 3,
+    "stops": [
+      {
+        "coord": {
+          "lat": 48.892682,
+          "lng": 2.237616
+        }
+      },
+      {
+        "coord": {
+          "lat": 48.892747,
+          "lng": 2.237069
+        }
+      },
+      {
+        "coord": {
+          "lat": 48.891770,
+          "lng": 2.237454
+        }
+      },
+      {
+        "coord": {
+          "lat": 48.891802,
+          "lng": 2.236177
+        }
+      },
+      {
+        "coord": {
+          "lat": 48.892300,
+          "lng": 2.237555
+        }
+      }
+    ]
+  }
+]

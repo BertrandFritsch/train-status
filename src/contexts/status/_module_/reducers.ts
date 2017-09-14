@@ -60,7 +60,38 @@ export interface SelectedStopPoint {
   timeSlotTrains: TimeSlotTrain[];
   timePosition: number;        // last fixed position in milliseconds since the start date
   timeRunning: Date | null;    // Date => time is running; date when the time has started running at timePosition
+  stopPointConnections: StopPointConnections;
 }
+
+export interface StopPointConnectionsItem {
+  label: string,
+  color: string,
+  zoom: number,
+  stops: {
+    name: string,
+    coord: {
+      lat: number,
+      lng: number
+    }
+    id: string,
+  }[],
+  coord: {
+    lat: number,
+    lng: number
+  }
+}
+
+export type StopPointConnections = StopPointConnectionsItem[];
+
+export interface WifiConnectionsItem {
+  label: string,
+  coord: {
+    lat: number,
+    lng: number
+  }
+}
+
+export type WifiConnections = WifiConnectionsItem[]
 
 export interface State {
   data: StatusData,
@@ -90,7 +121,8 @@ const initialState: State = {
     timeSlot: null,
     timeSlotTrains: [],
     timePosition: 0,
-    timeRunning: null
+    timeRunning: null,
+    stopPointConnections: []
   },
   error: null
 };
@@ -138,6 +170,9 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
 
     case ActionTypes.TIMESLOT_TRAINS_UPDATED:
       return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, timeSlotTrains: action.payload } };
+
+    case ActionTypes.STOP_POINT_CONNECTION_LOADED:
+     return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPointConnections: action.payload } };
 
     default:
       return locState;

@@ -3,7 +3,7 @@
  */
 
 import {
-  SuggestionLines, LineData, StopPoints, Route, StopPoint, SuggestionLine, Period, TimeSlot, TimeSlotTrain } from './reducers';
+  SuggestionLines, LineData, StopPoints, Route, StopPoint, SuggestionLine, Period, TimeSlot, TimeSlotTrain, StopPointConnections } from './reducers';
 
 const enum ActionTypes {
   DATA_LOADING = 'DATA_LOADING',
@@ -21,7 +21,9 @@ const enum ActionTypes {
   PERIOD_SELECTED = 'PERIOD_SELECTED',
   TIMESLOT_SELECTED = 'TIMESLOT_SELECTED',
   ROUTE_SELECTED = 'ROUTE_SELECTED',
-  TIMESLOT_TRAINS_UPDATED = 'TIMESLOT_TRAINS_UPDATED'
+  TIMESLOT_TRAINS_UPDATED = 'TIMESLOT_TRAINS_UPDATED',
+  MAP_ZOOMED = 'MAP_ZOOMED',
+  STOP_POINT_CONNECTION_LOADED = 'STOP_POINT_CONNECTION_LOADED'
 }
 
 export default ActionTypes;
@@ -42,7 +44,9 @@ export type StatusAction =
   | { type: ActionTypes.PERIOD_SELECTED, payload: Period }
   | { type: ActionTypes.TIMESLOT_SELECTED, payload: TimeSlot | null }
   | { type: ActionTypes.ROUTE_SELECTED, payload: Route }
-  | { type: ActionTypes.TIMESLOT_TRAINS_UPDATED, payload: TimeSlotTrain[] };
+  | { type: ActionTypes.TIMESLOT_TRAINS_UPDATED, payload: TimeSlotTrain[] }
+  | { type: ActionTypes.MAP_ZOOMED, payload: number }
+  | { type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: StopPointConnections };
 
 export interface Dispatch<S> {
   (action: StatusAction): void;
