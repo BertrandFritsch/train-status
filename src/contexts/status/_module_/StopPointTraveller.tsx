@@ -7,6 +7,7 @@ import DatePicker from 'react-datepicker';
 import * as moment from 'moment';
 import * as d3 from 'd3';
 import {shiftMinutesToToday} from '../../../data';
+import { TIMEZONE_TIMING } from '../../../utils';
 
 moment.locale('fr');
 
@@ -32,11 +33,14 @@ import './StopPointTraveller.scss';
 
 interface Props {
   selectedStopPoint: SelectedStopPoint;
+  timePosition: Date | null;
+  zoomLevel: number;
 
   periodTypeSelected: (selection: Period) => void;
   timeSlotSelected: (timeSlot: TimeSlot | null) => void;
   routeSelected: (route: Route) => void;
   timeRunningToggled: (date: Date | null) => void;
+  onTimingTicked: (date: Date) => void
 }
 
 interface ChartState {
@@ -81,6 +85,44 @@ function formatTimeSlotDate(date: Date) {
 }
 
 export default class StopPointTraveller extends React.PureComponent<Props> {
+
+  timePositionElement: HTMLSpanElement | null = null;
+  timingTicker = 0;
+
+  enableTimingTicker(enable: boolean) {
+    if (enable && !this.timingTicker) {
+
+      const timeSlotTrains = this.props.selectedStopPoint.timeSlotTrains!;
+      const timeZoneDepartureTime = timeSlotTrains.trains[ 0 ][ 0 ].date.getTime();
+      const timeZoneArrivalTime = timeSlotTrains.trains[ timeSlotTrains.trains.length - 1 ][ timeSlotTrains.trains[ timeSlotTrains.trains.length - 1 ].length -1 ].date.getTime();
+
+      this.timingTicker = window.setTimeout(() => {
+        this.props.onTimingTicked(this.chartState.getTimeRunningCursorPosition());
+        this.timingTicker = 0;
+        this.timePositionElement!.textContent = this.props.timePosition!.toLocaleTimeString();
+        this.enableTimingTicker(true);
+      }, TIMEZONE_TIMING * TIMEZONE_TIMING / (timeZoneArrivalTime - timeZoneDepartureTime));
+    }
+    else if (!enable && this.timingTicker) {
+      clearTimeout(this.timingTicker);
+      this.timingTicker = 0;
+      this.timePositionElement!.textContent = this.props.timePosition && this.props.timePosition!.toLocaleTimeString();
+    }
+  }
+
+  shouldComponentUpdate(nextProps: Props) {
+    // don't update for timePosition changes
+    return this.props.selectedStopPoint !== nextProps.selectedStopPoint;
+  }
+
+  componentDidUpdate() {
+    this.enableTimingTicker(this.props.selectedStopPoint.timeSlotTrains !== null && this.props.selectedStopPoint.timeSlotTrains.timeRunning);
+  }
+
+  componentWillUnmount() {
+    this.enableTimingTicker(false);
+  }
+
   /**
    * Holds the state of the chart
    * - create the static structure only once
@@ -293,7 +335,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
           return {
             start: xZoomedScale(beginDate),
             end: xZoomedScale(endDate),
-            cursor: xZoomedScale(this.props.selectedStopPoint.timeSlotTrains.timePosition)
+            cursor: xZoomedScale(this.props.timePosition)
           };
         }
         else {
@@ -323,7 +365,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
             .attr('x2', pos)
             .transition()
             .ease(d3.easeLinear)
-            .duration((timeZonePositions.end - pos) * 30000 / (timeZonePositions.end - timeZonePositions.start))
+            .duration((timeZonePositions.end - pos) * TIMEZONE_TIMING / (timeZonePositions.end - timeZonePositions.start))
             .attr('x1', timeZonePositions.end)
             .attr('x2', timeZonePositions.end)
             .on('end', () => cycleTimeRunningAnimation(timeZonePositions.start));
@@ -338,8 +380,6 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       const $dataGroup = d3.select('g.stop-point-traveller-data');
       const zoomTransform = d3.zoomTransform($dataGroup.node() as SVGElement);
       const $cursor = $dataGroup.select('line.stop-point-traveller-time-position');
-
-      $cursor.interrupt();
 
       // apply the transformation of the x-axis
       const xZoomedScale = zoomTransform.rescaleX(xScale as any);
@@ -422,6 +462,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                     <i
                       className="fa fa-stop"/>
                   </button>
+                  <span ref={ node => this.timePositionElement = node } className="stop-point-traveller-tools-time">{ this.props.timePosition && this.props.timePosition.toLocaleTimeString() }</span>
                 </div>
               </div>
               <div className="stop-point-traveller-tools-routes">
@@ -550,6 +591,8 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       </Dock>
     }
     else {
+      this.chartState.update();
+      this.chartState = {rootNode: null, brushMoving: false, update: () => {}, getTimeRunningCursorPosition: () => new Date()};
       return null;
     }
   }

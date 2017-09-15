@@ -1,7 +1,7 @@
 
+export const TIMEZONE_TIMING = 30000;
+
 // date formatter for log outputs
-
-
 function prefix0(val: string | number, count: number, char: string = '0') {
   const valStr = val.toString();
   const places = count - valStr.length;

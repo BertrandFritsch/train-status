@@ -1,6 +1,6 @@
-import { StatusAction } from './actionTypes';
+import {StatusAction} from './actionTypes';
 import ActionTypes from './actionTypes';
-import { TripStopPoint } from "../../../data";
+import {TripStopPoint} from "../../../data";
 
 export const enum PeriodType {
   DATE = 'DATE',
@@ -53,7 +53,6 @@ export type TimeSlotTrain = TripStopPoint[];
 
 export type TimeSlotTrains = {
   trains: TimeSlotTrain[];
-  timePosition: Date;   // last fixed position
   timeRunning: boolean;
 };
 
@@ -78,19 +77,19 @@ export interface StopPointConnectionsItem {
       lng: number
     }
     id: string,
-  }[],
-  coord: {
-    lat: number,
-    lng: number
-  }
+    duration: number,
+    stepInWeight: number
+  }[]
 }
 
 export type StopPointConnections = StopPointConnectionsItem[];
 
 export interface State {
-  data: StatusData,
-  selectedStopPoint: SelectedStopPoint,
-  error: Error | null
+  data: StatusData;
+  selectedStopPoint: SelectedStopPoint;
+  timePosition: Date | null;   // current position
+  zoomLevel: number;
+  error: Error | null;
 }
 
 export type StatusState = { status: State }
@@ -116,6 +115,8 @@ const initialState: State = {
     timeSlotTrains: null,
     stopPointConnections: []
   },
+  timePosition: null,
+  zoomLevel: 1,
   error: null
 };
 
@@ -125,48 +126,52 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
   switch (action.type) {
 
     case ActionTypes.SUGGESTION_LINES_LOADED:
-      return { ...locState, data: { ...locState.data, lines: action.payload } };
+      return {...locState, data: {...locState.data, lines: action.payload}};
 
     case ActionTypes.SUGGESTION_LINES_RESET:
-      return { ...locState, data: { ...locState.data, lines: [] } };
+      return {...locState, data: {...locState.data, lines: []}};
 
     case ActionTypes.LINE_DATA_RESET:
-      return { ...locState, data: { ...locState.data, lineData: initialState.data.lineData } };
+      return {...locState, data: {...locState.data, lineData: initialState.data.lineData}, selectedStopPoint: { ...initialState.selectedStopPoint, period: locState.selectedStopPoint.period }, timePosition: null};
 
     case ActionTypes.LINE_DATA_LOADED:
-      return { ...locState, data: { ...locState.data, lineData: action.payload } };
+      return {...locState, data: {...locState.data, lineData: action.payload}};
 
     case ActionTypes.STOP_POINTS_RESET:
-      return { ...locState, data: { ...locState.data, stopPoints: initialState.data.stopPoints } };
+      return {...locState, data: {...locState.data, stopPoints: initialState.data.stopPoints}, selectedStopPoint: { ...initialState.selectedStopPoint, period: locState.selectedStopPoint.period }, timePosition: null};
 
     case ActionTypes.STOP_POINTS_LOADED:
-      return { ...locState, data: { ...locState.data, stopPoints: action.payload } };
+      return {...locState, data: {...locState.data, stopPoints: action.payload}};
 
     case ActionTypes.DATA_LOAD_FAILED:
-      return { ...locState, error: action.payload };
+      return {...locState, error: action.payload};
 
     case ActionTypes.STOP_POINT_SELECTED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPoint: action.payload } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, stopPoint: action.payload}};
 
     case ActionTypes.STOP_POINT_ROUTES_LOADED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, routes: action.payload } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, routes: action.payload}};
 
     case ActionTypes.PERIOD_SELECTED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, period: action.payload } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, period: action.payload}};
 
     case ActionTypes.TIMESLOT_SELECTED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, timeSlot: action.payload } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, timeSlot: action.payload}};
 
     case ActionTypes.ROUTE_SELECTED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, selectedRoute: action.payload.id } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, selectedRoute: action.payload.id}};
 
     case ActionTypes.TIMESLOT_TRAINS_UPDATED:
       return {
         ...locState,
         selectedStopPoint: {
           ...locState.selectedStopPoint,
-          timeSlotTrains: action.payload.length > 0 ? { trains: action.payload, timePosition: action.payload[ 0 ][ 0 ].date, timeRunning: false } : null
-        }
+          timeSlotTrains: action.payload.length > 0 ? {
+            trains: action.payload,
+            timeRunning: false
+          } : null
+        },
+        timePosition: action.payload.length > 0 ? action.payload[ 0 ][ 0 ].date : null
       };
 
     case ActionTypes.TIME_RUNNING_TOGGLED: {
@@ -177,20 +182,26 @@ const reducer = (state: State | undefined, action: StatusAction): State => {
           timeSlotTrains: locState.selectedStopPoint.timeSlotTrains !== null
             ? {
               ...locState.selectedStopPoint.timeSlotTrains,
-              timePosition: action.payload !== null ? action.payload : locState.selectedStopPoint.timeSlotTrains.trains[ 0 ][ 0 ].date,
               timeRunning: action.payload !== null && !locState.selectedStopPoint.timeSlotTrains.timeRunning
             }
             : null
-        }
+        },
+        timePosition: action.payload !== null ? action.payload : locState.selectedStopPoint.timeSlotTrains && locState.selectedStopPoint.timeSlotTrains.trains[ 0 ][ 0 ].date,
       };
     }
 
+    case ActionTypes.TIME_RUNNING_TICK:
+      return { ...locState, timePosition: action.payload };
+
     case ActionTypes.STOP_POINT_CONNECTION_LOADED:
-      return { ...locState, selectedStopPoint: { ...locState.selectedStopPoint, stopPointConnections: action.payload } };
+      return {...locState, selectedStopPoint: {...locState.selectedStopPoint, stopPointConnections: action.payload}};
+
+    case ActionTypes.MAP_ZOOMED:
+      return {...locState, zoomLevel: action.payload};
 
     default:
       return locState;
   }
 };
 
-export default { status: reducer };
+export default {status: reducer};

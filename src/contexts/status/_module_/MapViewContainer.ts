@@ -31,7 +31,10 @@ const getProps = createSelector(
 );
 
 export default connect(
-  (state: StatusState) => getProps(state),
+  (state: StatusState) => ({
+    ...getProps(state),
+    timePosition: state.status.timePosition
+  }),
   (dispatch: Dispatch<State>) => ({
     onStopPointSelected: (stopPoint: StopPoint): void => dispatch({
       type: ActionTypes.STOP_POINT_SELECTED,

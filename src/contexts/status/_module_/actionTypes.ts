@@ -23,6 +23,7 @@ const enum ActionTypes {
   ROUTE_SELECTED = 'ROUTE_SELECTED',
   TIMESLOT_TRAINS_UPDATED = 'TIMESLOT_TRAINS_UPDATED',
   TIME_RUNNING_TOGGLED = 'TIME_RUNNING_TOGGLED',
+  TIME_RUNNING_TICK = 'TIME_RUNNING_TICK',
   MAP_ZOOMED = 'MAP_ZOOMED',
   STOP_POINT_CONNECTION_LOADED = 'STOP_POINT_CONNECTION_LOADED'
 }
@@ -47,6 +48,7 @@ export type StatusAction =
   | { type: ActionTypes.ROUTE_SELECTED, payload: Route }
   | { type: ActionTypes.TIMESLOT_TRAINS_UPDATED, payload: TimeSlotTrain[] }
   | { type: ActionTypes.TIME_RUNNING_TOGGLED, payload: Date | null }
+  | { type: ActionTypes.TIME_RUNNING_TICK, payload: Date }
   | { type: ActionTypes.MAP_ZOOMED, payload: number }
   | { type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: StopPointConnections };
 

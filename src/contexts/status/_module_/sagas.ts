@@ -1,8 +1,8 @@
-import {throttle, call, take, put, select, PutEffect, TakeEffect, SelectEffect, Func1} from 'redux-saga/effects';
+import {throttle, call, take, put, select, takeLatest, PutEffect, TakeEffect, SelectEffect, Func1} from 'redux-saga/effects';
 
 import callAPI, {CallAPIResult, CallAPIResultType} from '../../../server/callAPI';
 import ActionTypes, {StatusAction} from './actionTypes';
-import {getSelectedStopPoint} from './selectors';
+import {getSelectedStopPoint, getZoomLevel} from './selectors';
 import {SelectedStopPoint, StatusState, PeriodType, StopPointConnections} from './reducers';
 import {
   filterTripsOfStopPointByTimeSlot,
@@ -11,7 +11,8 @@ import {
   filterStopPointByFrequency,
   filterStopPointByMonth,
   filterStopPointByWeek,
-  groupTripsByHour
+  groupTripsByHour,
+  filterTripsByZoomLevel
 } from '../../../data';
 
 // const line = { id: 'line:OIF:810:AOIF741', name: 'RER A' }; // RER A
@@ -171,9 +172,10 @@ function* loadStopPointRoutes() {
 
 function* updateTrainsFromTimeSlot() {
   const selectedStopPoint: SelectedStopPoint = yield statusActionSelect(getSelectedStopPoint);
+  const zoomLevel: number = yield statusActionSelect(getZoomLevel);
 
   const trips = selectedStopPoint.stopPoint && selectedStopPoint.selectedRoute !== null && selectedStopPoint.timeSlot !== null ? groupTripsByHour((() => {
-    const timeSlotTrips = filterTripsOfStopPointByTimeSlot(selectedStopPoint.stopPoint.id, selectedStopPoint.timeSlot[ 0 ], selectedStopPoint.timeSlot[ 1 ]);
+    const timeSlotTrips = filterTripsByZoomLevel(selectedStopPoint.stopPoint.id, filterTripsOfStopPointByTimeSlot(selectedStopPoint.stopPoint.id, selectedStopPoint.timeSlot[ 0 ], selectedStopPoint.timeSlot[ 1 ]), zoomLevel);
     switch (selectedStopPoint.period.type) {
       case PeriodType.YEAR:
         return filterStopPointByYear(timeSlotTrips, selectedStopPoint.period.value as number);
@@ -198,26 +200,22 @@ function* updateTrainsFromTimeSlot() {
 }
 
 function* loadStopPointConnection() {
-  let zoom = 0;
-  let defenseSelected = false;
-
   for (; ;) {
-    const oldzoom = zoom;
-    const oldDefenseSelected: boolean = defenseSelected;
+    const prevZoom = yield select(getZoomLevel);
+
+    const selectedStopPoint: SelectedStopPoint = yield statusActionSelect(getSelectedStopPoint);
+    const prevDefenseSelected = selectedStopPoint.stopPoint !== null && selectedStopPoint.stopPoint.id === 'stop_point:OIF:SP:8738221:800:L';
+
     const action = yield statusActionTake([ ActionTypes.STOP_POINT_SELECTED, ActionTypes.MAP_ZOOMED ]);
 
-    if (action.type === ActionTypes.STOP_POINT_SELECTED && oldDefenseSelected !== (defenseSelected = action.payload.id === 'stop_point:OIF:SP:8738221:800:L')
-        || action.type === ActionTypes.MAP_ZOOMED && oldzoom !== (zoom = action.payload)) {
+    let zoom = prevZoom;
+    let defenseSelected = prevDefenseSelected;
+
+    if (action.type === ActionTypes.STOP_POINT_SELECTED && prevDefenseSelected !== (defenseSelected = action.payload.id === 'stop_point:OIF:SP:8738221:800:L')
+        || action.type === ActionTypes.MAP_ZOOMED && prevZoom !== (zoom = action.payload)) {
       yield statusActionPut({
-        type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseSelected ? defenseData.filter((connection) => {
-          if (zoom > 12 && zoom < 17 && connection.zoom == 2) {
-            return true;
-          }
-          else if (zoom >= 17) {
-            return true
-          }
-          return false;
-        }) : []
+        type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseSelected ? defenseData.filter(
+          connection => zoom == 3 || zoom === 2 && connection.zoom === 2) : []
       });
     }
   }
@@ -227,7 +225,10 @@ function* initStatus() {
   yield statusActionPut({type: ActionTypes.SUGGESTION_LINE_REQUESTED, payload: line});
   yield statusActionPut({type: ActionTypes.STOP_POINT_SELECTED, payload: STOP_POINT_VRD});
   const now = new Date();
-  yield statusActionPut({type: ActionTypes.TIMESLOT_SELECTED, payload: [ new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 55), new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 5) ]});
+  yield statusActionPut({
+    type: ActionTypes.TIMESLOT_SELECTED,
+    payload: [ new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 55), new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 15) ]
+  });
 
   const routes = (yield statusActionTake(ActionTypes.STOP_POINT_ROUTES_LOADED)).payload;
 
@@ -239,12 +240,12 @@ function* initStatus() {
  */
 export default function* () {
   yield [
-    throttle(500, ActionTypes.SUGGESTION_LINES_REQUESTED, fetchLines),
-    throttle(500, [ ActionTypes.PERIOD_SELECTED, ActionTypes.ROUTE_SELECTED, ActionTypes.TIMESLOT_SELECTED ], updateTrainsFromTimeSlot),
+    takeLatest(ActionTypes.SUGGESTION_LINES_REQUESTED, fetchLines),
+    throttle(300, [ ActionTypes.PERIOD_SELECTED, ActionTypes.ROUTE_SELECTED, ActionTypes.TIMESLOT_SELECTED ], updateTrainsFromTimeSlot),
     call(loadLineData),
     call(loadStopPoints),
     call(loadStopPointRoutes),
     call(loadStopPointConnection) //,
-    // call(initStatus)
+    //call(initStatus)
   ];
 }

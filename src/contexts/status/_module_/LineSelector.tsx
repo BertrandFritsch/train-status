@@ -33,7 +33,7 @@ export default class StationSelector extends React.PureComponent<Props, State> {
     );
 
     const inputProps = {
-      placeholder: 'Ligne ou Station',
+      placeholder: 'Ligne',
       value: this.state.value,
       onChange: (_: any, change: Autosuggest.ChangeEvent) => this.onChange(change.newValue)
     };

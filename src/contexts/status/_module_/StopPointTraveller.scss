@@ -102,6 +102,8 @@ input[type~='radio'] {
 }
 
 .stop-point-traveller-tools-commands {
+  display: flex;
+  align-items: center;
   margin: 0 0 0 20px;
 
   button {
@@ -111,6 +113,12 @@ input[type~='radio'] {
       margin-top: 1px;
     }
   }
+}
+
+.stop-point-traveller-tools-time {
+  margin-left: 10px;
+  width: 60px;
+  font-size: 0.9em;
 }
 
 .stop-point-traveller-timezone-start, .stop-point-traveller-timezone-end {

@@ -49,20 +49,45 @@ export function filterTripsOfStopPoint(id: string) {
 }
 
 export function filterTripsOfStopPointByTimeSlot(id: string, beginDate: Date, endDate: Date) {
-  const beginTime = (beginDate.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
-  const endTime = (endDate.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+  const beginTime = (beginDate.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+  const endTime = (endDate.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
 
   return trips
     .filter(trip => {
       const sp = trip.stops.find(s => s.id === id);
       if (sp) {
-        const time = (sp.date.getTime() -  - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
+        const time = (sp.date.getTime() - MILLISECONDS_PER_TIMEZONEOFFSET) % MILLISECONDS_PER_DAY;
         return beginTime <= time && time <= endTime;
       }
       else {
         return false;
       }
     });
+}
+
+export function filterTripsByZoomLevel(id: string, trips: Trip[], zoomLevel: number) {
+  if (zoomLevel > 1) {
+    const interval = 1;
+
+    return trips.map(trip => {
+      const spIndex = trip.stops.findIndex(s => s.id === id);
+
+      const stops = trip.stops.slice(Math.max(0, spIndex - interval), Math.min(spIndex + interval + 1, trip.stops.length));
+      stops[ 0 ] = {
+        ...stops[ 0 ],
+        stepIn: trip.stops.slice(0, Math.max(0, spIndex - interval + 1)).reduce((acc, s) => acc + s.stepIn - s.stepOut, 0),
+        stepOut: 0
+      };
+
+      return {
+        ...trip,
+        stops
+      }
+    });
+  }
+  else {
+    return trips;
+  }
 }
 
 function getMinutesOfDay(date: Date) {
@@ -141,7 +166,7 @@ export function groupTripsByHour(trips: Trip[]) {
       const trips = tripsByHour[ time ].trips;
       const reducedTrips = trips[ 0 ].map(sp => ({ ...sp, date: shiftMinutesToToday(sp.date) }));
       for (let i = 0, iEnd = reducedTrips.length; i < iEnd; ++i) {
-        for (let j = 1, jEnd = trips.length; j < jEnd; ++jEnd) {
+        for (let j = 1, jEnd = trips.length; j < jEnd; ++j) {
           reducedTrips[i].stepIn += trips[j][i].stepIn;
           reducedTrips[i].stepOut += trips[j][i].stepOut;
         }
