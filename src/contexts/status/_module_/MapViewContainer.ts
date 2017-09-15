@@ -4,7 +4,7 @@ import {StatusState, State, StopPoint, StopPointConnections} from './reducers';
 import ActionTypes, {Dispatch} from './actionTypes';
 import MapView from './MapView';
 
-const emptyArray: StopPointConnections = []
+const emptyArray: StopPointConnections = [];
 
 const getProps = createSelector(
   (state: StatusState) => state.status.data.lineData,
@@ -35,7 +35,7 @@ export default connect(
       type: ActionTypes.STOP_POINT_SELECTED,
       payload: stopPoint
     }),
-    onMapZooomed: (zoom: number): void => dispatch({
+    onMapZoomed: (zoom: number): void => dispatch({
       type: ActionTypes.MAP_ZOOMED,
       payload: zoom
     })

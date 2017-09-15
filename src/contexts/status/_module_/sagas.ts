@@ -3,7 +3,7 @@ import {throttle, call, take, put, select, PutEffect, TakeEffect, SelectEffect, 
 import callAPI, {CallAPIResult, CallAPIResultType} from '../../../server/callAPI';
 import ActionTypes, {StatusAction} from './actionTypes';
 import {getSelectedStopPoint} from './selectors';
-import {SelectedStopPoint, StatusState, PeriodType, StopPointConnections, WifiConnections} from './reducers';
+import {SelectedStopPoint, StatusState, PeriodType, StopPointConnections} from './reducers';
 import {
   filterTripsOfStopPointByTimeSlot,
   filterStopPointByYear,
@@ -199,31 +199,26 @@ function* updateTrainsFromTimeSlot() {
 
 function* loadStopPointConnection() {
   let zoom = 0;
-  let selectedPoint = null;
+  let defenseSelected = false;
 
-  for (;;) {
-    let oldzoom = zoom;
-    const action = yield statusActionTake([ActionTypes.STOP_POINT_SELECTED, ActionTypes.MAP_ZOOMED]);
-    if (action.type === ActionTypes.MAP_ZOOMED) {
-      zoom = action.payload;
-    }
-    else if (action.type === ActionTypes.STOP_POINT_SELECTED){
-      selectedPoint = action.payload;
-    }
+  for (; ;) {
+    const oldzoom = zoom;
+    const oldDefenseSelected: boolean = defenseSelected;
+    const action = yield statusActionTake([ ActionTypes.STOP_POINT_SELECTED, ActionTypes.MAP_ZOOMED ]);
 
-    if (!selectedPoint || selectedPoint.id !== 'stop_point:OIF:SP:8738221:800:L') {
-      yield statusActionPut( {type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload:[]} );
-    }
-    else if (selectedPoint && selectedPoint.id === 'stop_point:OIF:SP:8738221:800:L' && zoom != oldzoom ) {
-      yield statusActionPut( {type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseData.filter((connection) => {
-        if (zoom > 12 && zoom < 17 && connection.zoom == 2) {
-          return true;
-        }
-        else if (zoom >= 17) {
-          return true
-        }
-        return false;
-      })} );
+    if (action.type === ActionTypes.STOP_POINT_SELECTED && oldDefenseSelected !== (defenseSelected = action.payload.id === 'stop_point:OIF:SP:8738221:800:L')
+    || action.type === ActionTypes.MAP_ZOOMED && oldzoom !== (zoom = action.payload)) {
+      yield statusActionPut({
+        type: ActionTypes.STOP_POINT_CONNECTION_LOADED, payload: defenseSelected ? defenseData.filter((connection) => {
+          if (zoom > 12 && zoom < 17 && connection.zoom == 2) {
+            return true;
+          }
+          else if (zoom >= 17) {
+            return true
+          }
+          return false;
+        }) : []
+      });
     }
   }
 }
@@ -249,7 +244,7 @@ export default function* () {
     call(loadLineData),
     call(loadStopPoints),
     call(loadStopPointRoutes),
-    call(loadStopPointConnection),
-    call(initStatus)
+    call(loadStopPointConnection)
+ //   call(initStatus)
   ];
 }

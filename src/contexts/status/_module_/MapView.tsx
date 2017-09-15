@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 
 import './MapView.scss';
-import { LineData, StopPoints, StopPoint, StopPointConnections, StopPointConnectionsItem } from './reducers';
+import { LineData, StopPoints, StopPoint, StopPointConnections } from './reducers';
 
 const STOP_POINTS_RAYON: number = 4.5;
 const LAYER_MARGIN: number = STOP_POINTS_RAYON * 3;
@@ -14,14 +14,14 @@ interface Props {
   stopPointConnections: StopPointConnections,
 
   onStopPointSelected: (stopPoint: StopPoint) => void,
-  onMapZooomed: (zoom: number) => void,
+  onMapZoomed: (zoom: number) => void,
 }
 
 interface OverlayActions {
   onStopPointSelected: (stopPoint: StopPoint) => void
 }
 
-function createMap(node: HTMLElement) {
+function createMap(node: HTMLElement, onMapZoomed: (zoom: number) => void) {
 
   const mapNode = d3.select(node)
                     .append('div')
@@ -33,10 +33,12 @@ function createMap(node: HTMLElement) {
     clickableIcons: false, // disable all default clickable UI interactions
     zoom: 6,
     center: new google.maps.LatLng(47.46972222706748, 2.35472812402350850),
-    mapTypeId: google.maps.MapTypeId.ROADMAP
+    mapTypeId: google.maps.MapTypeId.ROADMAP,
+    styles: [{ featureType: 'poi.business', stylers: [{visibility: 'off'}] } ]
   });
-  map.setOptions({styles: [{ featureType: 'poi.business', stylers: [{visibility: 'off'}] } ]});
-  return map
+
+  google.maps.event.addListener(map, 'zoom_changed', () => onMapZoomed(map.getZoom()));
+  return map;
 }
 
 function computePathData(projection: google.maps.MapCanvasProjection, ne: google.maps.Point, sw: google.maps.Point, line: google.maps.LatLng[]) {
@@ -49,23 +51,6 @@ function computePathData(projection: google.maps.MapCanvasProjection, ne: google
     const ld = projection.fromLatLngToDivPixel(d);
     path.lineTo(ld.x - sw.x, ld.y - ne.y);
   });
-
-  return path.toString();
-}
-
-function computePathDataForConnections(projection: google.maps.MapCanvasProjection, ne: google.maps.Point, sw: google.maps.Point, line: google.maps.LatLng[]) {
-  const path = d3.path();
-
-  const [ firstPoint, ...otherPoints ] = line;
-  const ld = projection.fromLatLngToDivPixel(firstPoint);
-
-  if (ld && sw && ne) {
-    path.moveTo(ld.x - sw.x, ld.y - ne.y);
-    otherPoints.forEach(d => {
-      const ld = projection.fromLatLngToDivPixel(d);
-      path.lineTo(ld.x - sw.x, ld.y - ne.y);
-    });
-  }
 
   return path.toString();
 }
@@ -107,25 +92,23 @@ function completeStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint
  * Complete the stop points with the lats and the lngs
  *
  * @param {StopPointConnections} stopPointConnections
+ * @param { StopPoint } selectedStopPoint
  * @returns [{ data: StopPointConnections, connections: {latLngs: google.maps.LatLng[], color: string}[] }]
  */
  function completeStopPointConnections(stopPointConnections: StopPointConnections, selectedStopPoint: StopPoint) {
-   let obj = {
-     data: stopPointConnections,
-     connections: []
-   } as { data: StopPointConnections, connections: {latLngs: google.maps.LatLng[], color: string}[] };
-   let selectedStopPointLatLng = new google.maps.LatLng(selectedStopPoint.coord[0], selectedStopPoint.coord[1]);
+   const selectedStopPointLatLng = new google.maps.LatLng(selectedStopPoint.coord[0], selectedStopPoint.coord[1]);
 
-   for (let connection of stopPointConnections) {
-     if (connection.stops) {
-       for (let stop of connection.stops) {
-         let stopLatLng = new google.maps.LatLng(stop.coord.lat, stop.coord.lng);
-         let latLngs = [selectedStopPointLatLng, stopLatLng] as google.maps.LatLng[];
-         obj.connections.push({latLngs: latLngs, color: connection.color});
-       }
-     }
-   }
-   return obj;
+   return {
+     data: stopPointConnections,
+     connections: stopPointConnections.reduce(
+       (acc, connection) => [ ...acc, ...connection.stops.map(
+         stop => ({
+           latLngs: [ selectedStopPointLatLng, new google.maps.LatLng(stop.coord.lat, stop.coord.lng) ],
+           color: connection.color
+         })
+       ) ], []
+     )
+   };
 }
 
 class LineOverlayView extends google.maps.OverlayView {
@@ -166,8 +149,8 @@ class LineOverlayView extends google.maps.OverlayView {
     this._actions = actions;
     this._bounds = new google.maps.LatLngBounds();
     this._lineData = { data: { color: '000000', coordinates: [] }, latLngs: [] };
-    this._stopPoints = { data: [], latLngs: [] }
-    this._stopPointConnections = { data: [{label: '', zoom:0, color: '', stops: [], coord: {lat:0,lng:0} }], connections: [{latLngs: [], color: '000000'}] };
+    this._stopPoints = { data: [], latLngs: [] };
+    this._stopPointConnections = { data: [], connections: [] };
   }
 
   private updateBounds() {
@@ -269,8 +252,7 @@ class LineOverlayView extends google.maps.OverlayView {
     const projection = this.getProjection();
     const layerCoords = this.getLayerCoords();
 
-
-    // remove all the points before refstopLatLngreshing
+    // remove all the points before refreshing
     d3.select(this._layerNode)
       .selectAll('.stop-points > .stop-point')
       .remove();
@@ -341,16 +323,16 @@ class LineOverlayView extends google.maps.OverlayView {
       .data(this._stopPointConnections.connections)
       .each(function (line) {
         d3.select(this)
-          .attr('d', computePathDataForConnections(projection, layerCoords.ne, layerCoords.sw, line.latLngs))
+          .attr('d', computePathData(projection, layerCoords.ne, layerCoords.sw, line.latLngs))
       })
       .enter()
       .append('path')
       .attr('class', 'stop-point-connection arrow')
-      .attr('d', line => computePathDataForConnections(projection, layerCoords.ne, layerCoords.sw, line.latLngs))
+      .attr('d', line => computePathData(projection, layerCoords.ne, layerCoords.sw, line.latLngs))
       .attr('stroke', d => `#${d.color}`)
-      .style("stroke-dasharray", ("10,3"))
+      .style('stroke-dasharray', ("10,3"))
       .attr('stroke-width', 2)
-      .style("marker-end", "url(#arrow)")
+      .style('marker-end', 'url(#arrow)')
 
       .attr('fill', 'none');
   }
@@ -373,7 +355,7 @@ class LineOverlayView extends google.maps.OverlayView {
           .attr('orient', 'auto')
           .append('path')
           .attr('d', 'M0,0 L5,2.5 L0,5 Z')
-          .attr("class", "arrow")
+          .attr("class", "arrow");
 
       layer
           .append('g')
@@ -415,20 +397,13 @@ export default class MapView extends React.PureComponent<Props> {
   renderChart = (node: HTMLElement) => {
 
     // Create the Google Map…
-    const map = this._map || (this._map = createMap(node));
+    const map = this._map || (this._map = createMap(node, this.props.onMapZoomed));
 
     const overlay = this._overlay || (this._overlay = createOverlay(map, { onStopPointSelected: this.props.onStopPointSelected }));
 
-    const onMapZooomed = this.props.onMapZooomed;
-    let zoom = map.getZoom();
-    google.maps.event.addListener(map, 'zoom_changed', function() {
-        zoom = map.getZoom();
-        onMapZooomed(map.getZoom());
-    });
     overlay.updateLineData(this.props.lineData);
     overlay.updateStopPoints(this.props.stopPoints, this.props.selectedStopPoint);
     overlay.updateStopPointConnections(this.props.stopPointConnections, this.props.selectedStopPoint);
-    console.log(this.props.stopPointConnections);
   };
 
   render() {

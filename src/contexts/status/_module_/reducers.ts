@@ -83,16 +83,6 @@ export interface StopPointConnectionsItem {
 
 export type StopPointConnections = StopPointConnectionsItem[];
 
-export interface WifiConnectionsItem {
-  label: string,
-  coord: {
-    lat: number,
-    lng: number
-  }
-}
-
-export type WifiConnections = WifiConnectionsItem[]
-
 export interface State {
   data: StatusData,
   selectedStopPoint: SelectedStopPoint,
