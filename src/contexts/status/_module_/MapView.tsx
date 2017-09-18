@@ -685,8 +685,8 @@ class LineOverlayView extends google.maps.OverlayView {
         const timePositionAfterStopPoint = Math.max(0, (timePosition ? timePosition.getTime() : d.train.startTime.getTime()) - d.train.startTime.getTime());
         const trainPositionAfterStopPoint = timePositionAfterStopPoint *  hypot(ptOrg, ptDest) / (d.connection.duration * 60 * 1000);
 
-        const angle = Math.atan((ptOrg.y - ptDest.y) / (ptDest.x - ptOrg.x));
-        const ptReal = { x: ptOrg.x + trainPositionAfterStopPoint * Math.cos(angle), y: ptOrg.y - trainPositionAfterStopPoint * Math.sin(angle) };
+        const angle = Math.atan2(ptDest.y - ptOrg.y,ptDest.x - ptOrg.x);
+        const ptReal = { x: ptOrg.x + trainPositionAfterStopPoint * Math.cos(angle), y: ptOrg.y + trainPositionAfterStopPoint * Math.sin(angle) };
 
         $circle
           .attr('transform', `translate(${ ptReal.x - layerCoords.sw.x },${ ptReal.y - layerCoords.ne.y })`);
