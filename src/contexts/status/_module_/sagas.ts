@@ -38,7 +38,7 @@ const statusActionTake = <StatusAction>(pattern: ActionTypes | ActionTypes[]): T
 const statusActionSelect = (selector: Func1<StatusState>): SelectEffect => select(selector);
 
 interface SNCFLines {
-  pt_objects: Array<{
+  pt_objects?: Array<{
     id: string
     name: string,
   }>
@@ -78,7 +78,7 @@ function* fetchLines(action: { type: ActionTypes.SUGGESTION_LINES_REQUESTED, pay
   // get the suggested lines
   const apiCall: CallAPIResult<SNCFLines> = yield call(callAPI, suggestionLinesURI(action.payload), {headers: {Authorization: authToken}});
 
-  if (apiCall.type === CallAPIResultType.SUCCESS && apiCall.status === 200 && apiCall.body) {
+  if (apiCall.type === CallAPIResultType.SUCCESS && apiCall.status === 200 && apiCall.body && apiCall.body.pt_objects) {
     const data = apiCall.body.pt_objects.map(o => ({id: o.id, name: o.name}));
     yield statusActionPut({type: ActionTypes.SUGGESTION_LINES_LOADED, payload: data});
   }
