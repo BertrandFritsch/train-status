@@ -251,7 +251,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                       .tickFormat(d3.timeFormat('%H:%M'));
 
       const yScale = d3.scaleLinear()
-                       .domain([ 0, trips.reduce((acc, t) => acc < t.stepIn ? t.stepIn : acc, 0) ])
+                       .domain([ 0, trips.reduce((acc, t) => acc < t.stepIn ? t.stepIn : acc, 100) ])
                        .range([ height - pad, pad ]);
 
       const yAxis = d3.axisLeft(yScale)
@@ -438,20 +438,13 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
         isVisible={ true }
         dimMode="none"
         fluid={ false }
-        size={ 300 }
+        size={ 272 }
       >
-        <div style={ {height: '100%', display: 'flex'} }>
+        <div style={ {height: '100%', display: 'flex', width: '100%'} }>
           <div className="stop-point-traveller-box">
             <div className="stop-point-traveller-tools">
               <div className="stop-point-traveller-tools-header">
                 <label>{ this.props.selectedStopPoint && this.props.selectedStopPoint.stopPoint.name }</label>
-              </div>
-              <div className="stop-point-traveller-tools-flux">
-                <span>
-                  Visualisation du flux de voyageurs sur la ligne
-                  entre { this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 0 ]) || '--' }
-                  { " et " }{ this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 1 ]) || '--' }
-                </span>
                 <div className="stop-point-traveller-tools-commands">
                   <button disabled={ this.props.selectedStopPoint.timeSlotTrains === null }
                           onClick={ () => this.props.timeRunningToggled(this.chartState.getTimeRunningCursorPosition()) }>
@@ -465,6 +458,13 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                   <span ref={ node => this.timePositionElement = node } className="stop-point-traveller-tools-time">{ this.props.timePosition && this.props.timePosition.toLocaleTimeString('fr-FR') }</span>
                 </div>
               </div>
+              <div className="stop-point-traveller-tools-flux">
+                <div className="stop-point-traveller-tools-description">
+                  Visualisation du flux de voyageurs sur la ligne
+                  entre { this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 0 ]) || '--' }
+                  { " et " }{ this.props.selectedStopPoint.timeSlot && formatTimeSlotDate(this.props.selectedStopPoint.timeSlot[ 1 ]) || '--' }
+                </div>
+              </div>
               <div className="stop-point-traveller-tools-routes">
                 { this.props.selectedStopPoint.routes.map(r =>
                   <label key={ r.id }>
@@ -472,7 +472,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                            name="select-route"
                            onChange={ () => this.props.routeSelected(r) }
                            checked={ r.id === this.props.selectedStopPoint.selectedRoute }
-                    />{ r.name }</label>
+                    /><span>{ r.name }</span></label>
                 ) }
               </div>
             </div>

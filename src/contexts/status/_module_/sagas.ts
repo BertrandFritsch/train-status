@@ -17,7 +17,7 @@ import {
 
 // const line = { id: 'line:OIF:810:AOIF741', name: 'RER A' }; // RER A
 const line = {id: 'line:OIF:800:LOIF742', name: 'Transilien L'}; // Ligne L
-const suggestionLinesURI = (value: string) => `https://api.navitia.io/v1/coverage/fr-idf/pt_objects?q=${value}&type[]=line&count=100&depth=3`;
+const suggestionLinesURI = (value: string) => `https://api.navitia.io/v1/coverage/fr-idf/pt_objects?q=${value}&type[]=line&count=100&depth=1`;
 const lineURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/lines/${id}?depth=1`;
 const stopPointsURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/lines/${id}/stop_points?count=100`;
 const stopPointRoutesURI = (id: string) => `https://api.navitia.io/v1/coverage/fr-idf/stop_points/${id}/routes?depth=1&forbidden_uris[]=physical_mode:Bus`;
