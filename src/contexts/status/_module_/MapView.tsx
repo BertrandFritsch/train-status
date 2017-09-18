@@ -373,8 +373,16 @@ class LineOverlayView extends google.maps.OverlayView {
       if (this._hasDrawn && (prevTimeSlotTrains === null || this._timeSlotTrains === null || prevTimeSlotTrains.trains !== this._timeSlotTrains.trains || prevTimeSlotTrains.timeRunning !== this._timeSlotTrains.timeRunning || !this._timeSlotTrains.timeRunning)) {
         this.drawTrains();
 
-        if (this._timeSlotTrains !== prevTimeSlotTrains || this._timeSlotTrains && !this._timeSlotTrains.timeRunning && this._timePosition && this._timePosition.getTime() === this._timeSlotTrains.trains[ 0 ][ 0 ].date.getTime()) {
-          // assume the animation has been stopped, so make sure that no connection trains are registered
+        if (
+          // reset the timezone
+          prevTimeSlotTrains !== null && this._timeSlotTrains === null
+
+          // change the list of trains
+          || prevTimeSlotTrains !== null && this._timeSlotTrains !== null && prevTimeSlotTrains.trains !== this._timeSlotTrains.trains
+
+          // reset the animation
+          || this._timeSlotTrains && !this._timeSlotTrains.timeRunning && this._timePosition && this._timePosition.getTime() === this._timeSlotTrains.trains[ 0 ][ 0 ].date.getTime()
+        ) {
           this._stopPointConnectionTrains = [];
         }
 
@@ -640,14 +648,18 @@ class LineOverlayView extends google.maps.OverlayView {
     const projection = this.getProjection();
     const layerCoords = this.getLayerCoords();
 
-    function completeConnectionTrains(stopPointConnections: StopPointConnection[], stopPointConnectionTrains: StopPointConnectionTrain[]) {
-      return stopPointConnectionTrains.reduce((acc, t) => [ ...acc, ...stopPointConnections.map(c => ({ connection: c, train: t })) ], []);
+    function completeConnectionTrains(stopPointConnections: StopPointConnection[], stopPointConnectionTrains: StopPointConnectionTrain[], timePosition: Date | null) {
+      return stopPointConnectionTrains.reduce((acc, t) => {
+        const pendingConnections = stopPointConnections.filter(c =>  Math.max(0, (timePosition ? timePosition.getTime() : t.startTime.getTime()) - t.startTime.getTime()) < c.duration * 60 * 1000);
+        const ct = { ...t, pendingConnections: pendingConnections.length };
+        return [ ...acc, ...pendingConnections.map(c => ({ connection: c, train: ct })) ]
+      }, []);
     }
 
     const $connectionTrains = d3.select(this._layerNode)
                                 .select('.stop-point-connection-trains')
                                 .selectAll('.stop-point-connection-train')
-                                .data(completeConnectionTrains(this._stopPointConnections.connections, this._stopPointConnectionTrains), (d : { connection: StopPointConnection, train: StopPointConnectionTrain }) => `${d.connection.id}${d.train.stopPointId}-${d.train.tripId}`);
+                                .data(completeConnectionTrains(this._stopPointConnections.connections, this._stopPointConnectionTrains, this._timePosition), (d : { connection: StopPointConnection, train: StopPointConnectionTrain }) => `${d.connection.id}${d.train.stopPointId}-${d.train.tripId}`);
 
     $connectionTrains.exit()
                      .interrupt()
@@ -703,7 +715,10 @@ class LineOverlayView extends google.maps.OverlayView {
             .attr('transform', `translate(${ ptDest.x - layerCoords.sw.x },${ ptDest.y - layerCoords.ne.y })`)
             .on('end', () => {
               // one shot animation
-              removeTrainAtEnd(d.train);
+              if (--d.train.pendingConnections === 0) {
+                removeTrainAtEnd(d.train);
+              }
+
               $circle.interrupt().remove();
             });
         }
