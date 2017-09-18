@@ -71,10 +71,6 @@ const xScale = d3.scaleTime()
                  .domain([ hour0, hour24 ])
                  .range([ pad, width - pad ]);
 
-const yScale = d3.scaleLinear()
-                 .domain([ 0, 1600 ])
-                 .range([ height - pad, pad ]);
-
 // zoom scaling
 const zScale = d3.scaleQuantize()
                  .domain([ 1, 24 ])
@@ -99,14 +95,14 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       this.timingTicker = window.setTimeout(() => {
         this.props.onTimingTicked(this.chartState.getTimeRunningCursorPosition());
         this.timingTicker = 0;
-        this.timePositionElement!.textContent = this.props.timePosition!.toLocaleTimeString();
+        this.timePositionElement!.textContent = this.props.timePosition!.toLocaleTimeString('fr-FR');
         this.enableTimingTicker(true);
       }, TIMEZONE_TIMING * TIMEZONE_TIMING / (timeZoneArrivalTime - timeZoneDepartureTime));
     }
     else if (!enable && this.timingTicker) {
       clearTimeout(this.timingTicker);
       this.timingTicker = 0;
-      this.timePositionElement!.textContent = this.props.timePosition && this.props.timePosition!.toLocaleTimeString();
+      this.timePositionElement && (this.timePositionElement.textContent = this.props.timePosition && this.props.timePosition!.toLocaleTimeString('fr-FR'));
     }
   }
 
@@ -254,10 +250,14 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       const xAxis = d3.axisBottom(xZoomedScale)
                       .tickFormat(d3.timeFormat('%H:%M'));
 
+      const yScale = d3.scaleLinear()
+                       .domain([ 0, trips.reduce((acc, t) => acc < t.stepIn ? t.stepIn : acc, 0) ])
+                       .range([ height - pad, pad ]);
+
       const yAxis = d3.axisLeft(yScale)
                       .ticks(5)
                       .tickSize(-width)
-                      .tickFormat((d, i) => (`${d}${i === 3 ? ' voyageurs' : ''}`));
+                      .tickFormat(function(d, i) { return (`${d}${i === arguments[2].length - 1 ? ' voyageurs' : ''}`) });
 
       $svg.select('g.stop-point-traveller-axis-x')
           .call(xAxis)
@@ -270,7 +270,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
           .call($g => {
             $g.select('.domain').remove();
             $g.selectAll(".tick text")
-              .attr("x", (d, i) => (i < 3 ? 15 : 50))
+              .attr("x", (d, i, g) => (i < g.length - 1 ? 15 : 50))
               .attr("dy", -2);
           });
 
@@ -462,7 +462,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                     <i
                       className="fa fa-stop"/>
                   </button>
-                  <span ref={ node => this.timePositionElement = node } className="stop-point-traveller-tools-time">{ this.props.timePosition && this.props.timePosition.toLocaleTimeString() }</span>
+                  <span ref={ node => this.timePositionElement = node } className="stop-point-traveller-tools-time">{ this.props.timePosition && this.props.timePosition.toLocaleTimeString('fr-FR') }</span>
                 </div>
               </div>
               <div className="stop-point-traveller-tools-routes">

@@ -12,7 +12,7 @@ const LAYER_MARGIN: number = STOP_POINTS_RAYON * 6;
 interface Props {
   lineData: LineData;
   stopPoints: StopPoints;
-  selectedStopPoint: StopPoint;
+  selectedStopPoint: StopPoint | null;
   timeSlotTrains: TimeSlotTrains | null;
   stopPointConnections: StopPointConnections;
   timePosition: Date | null;
@@ -79,13 +79,13 @@ function completeLineData(lineData: LineData) {
  * @param {StopPoint} selectedStopPoint
  * @returns {{data: StopPoints; latLngs: {name; latLng: google.maps.LatLng}[]}}
  */
-function completeStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint) {
+function completeStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint | null) {
   return {
     data: stopPoints,  // keep the initial structure to be able to detect when it has been changed
     latLngs: stopPoints.map(
       sp => ({
         stopPoint: sp,
-        isSelected: selectedStopPoint && selectedStopPoint.id === sp.id,
+        isSelected: selectedStopPoint !== null && selectedStopPoint.id === sp.id,
         latLng: new google.maps.LatLng(sp.coord[ 0 ], sp.coord[ 1 ])
       })
     )
@@ -266,7 +266,7 @@ class LineOverlayView extends google.maps.OverlayView {
       .attr('fill', 'none');
   }
 
-  updateStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint) {
+  updateStopPoints(stopPoints: StopPoints, selectedStopPoint: StopPoint | null) {
     if (this._stopPoints && (stopPoints !== this._stopPoints.data || selectedStopPoint !== this._selectedStopPoint)) {
       this._stopPoints = completeStopPoints(stopPoints, selectedStopPoint);
       this._selectedStopPoint = selectedStopPoint;
@@ -325,12 +325,10 @@ class LineOverlayView extends google.maps.OverlayView {
       .append('title').text(d => d.stopPoint.name);
   }
 
-  updateStopPointConnections(stopPointConnections: StopPointConnections, selectedStopPoint: StopPoint) {
-    if (this._stopPointConnections && stopPointConnections && stopPointConnections !== this._stopPointConnections.data && selectedStopPoint) {
-      this._stopPointConnections = completeStopPointConnections(stopPointConnections, selectedStopPoint);
+  updateStopPointConnections(stopPointConnections: StopPointConnections) {
+    if (stopPointConnections !== this._stopPointConnections.data) {
+      this._stopPointConnections = stopPointConnections.length > 0 && this._selectedStopPoint !== null ? completeStopPointConnections(stopPointConnections, this._selectedStopPoint) : {data: [], connections: []};
       if (this._hasDrawn) {
-        this.updateBounds();
-        this.updateLayer();
         this.drawStopPointConnections();
       }
     }
@@ -374,6 +372,12 @@ class LineOverlayView extends google.maps.OverlayView {
       // ignore changes if only the timePosition value has changed
       if (this._hasDrawn && (prevTimeSlotTrains === null || this._timeSlotTrains === null || prevTimeSlotTrains.trains !== this._timeSlotTrains.trains || prevTimeSlotTrains.timeRunning !== this._timeSlotTrains.timeRunning || !this._timeSlotTrains.timeRunning)) {
         this.drawTrains();
+
+        if (this._timeSlotTrains !== prevTimeSlotTrains || this._timeSlotTrains && !this._timeSlotTrains.timeRunning && this._timePosition && this._timePosition.getTime() === this._timeSlotTrains.trains[ 0 ][ 0 ].date.getTime()) {
+          // assume the animation has been stopped, so make sure that no connection trains are registered
+          this._stopPointConnectionTrains = [];
+        }
+
         this.drawConnectionTravellers();
       }
     }
@@ -785,7 +789,7 @@ export default class MapView extends React.PureComponent<Props> {
 
     overlay.updateLineData(this.props.lineData);
     overlay.updateStopPoints(this.props.stopPoints, this.props.selectedStopPoint);
-    overlay.updateStopPointConnections(this.props.stopPointConnections, this.props.selectedStopPoint);
+    overlay.updateStopPointConnections(this.props.stopPointConnections);
     overlay.updateTrains(this.props.timeSlotTrains, this.props.timePosition);
   };
 
