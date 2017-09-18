@@ -5,6 +5,7 @@ import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 const productionEnv = process.env.NODE_ENV === 'production';
 const developmentEnv = !productionEnv;
 const title = 'Train Status';
+const publicPath = process.env.PUBLIC_PATH || '';
 
 let config: webpack.Configuration = {};
 
@@ -71,7 +72,7 @@ config = {
   output: {
     path: path.join(__dirname, '/dist/'),
     filename: 'bundle-[hash].js',
-    publicPath: '/'
+    publicPath
   },
 
   resolve: {
@@ -112,7 +113,9 @@ config = {
             options: {
               hash: 'sha512',
               digest: 'hex',
-              name: 'assets/[name]-[hash].[ext]'
+              publicPath: `${publicPath}/`,
+              outputPath: 'assets/',
+              name: '[name]-[hash].[ext]'
             }
           }
         ]
