@@ -1,0 +1,153 @@
+
+input[type~='radio'] {
+  margin-right: 5px;
+}
+
+.stop-point-traveller-box {
+  display: flex;
+  width: 100%;
+  border-top: solid 1px black;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.stop-point-traveller-chart {
+  display: flex;
+
+  min-width: 800px;
+  height: 258px;
+  flex-grow: 1;
+}
+
+.stop-point-traveller-chart > svg {
+  width: 100%;
+  height: 100%;
+  margin-top: 6px;
+  margin-bottom: 6px;
+
+}
+
+.stop-point-traveller-selectors {
+  margin: 20px;
+  padding-left: 20px;
+  border-left: #aaaaaa 1px solid;
+  width: 20%;
+
+  label {
+    width: 90px;
+  }
+
+  select {
+    width: 168px;
+  }
+}
+
+.stop-point-traveller-selectors-header {
+  margin-top: 20px;
+}
+
+.stop-point-traveller-chart path, .stop-point-traveller-chart line, .stop-point-traveller-chart text {
+  vector-effect: non-scaling-stroke;
+}
+
+.stop-point-traveller-chart .stop-point-traveller-data {
+  cursor: move;
+}
+
+.stop-point-traveller-chart .stop-point-traveller-data-bar {
+  fill: rgb(175, 8, 61)
+}
+
+.stop-point-traveller-chart .stop-point-traveller-axis-y .tick:not(:first-of-type) line {
+  stroke: #222222;
+  stroke-dasharray: 2,2;
+}
+
+.stop-point-traveller-chart text {
+  fill: #343434;
+  font-size: 0.72em;
+}
+
+.stop-point-traveller-selector-container {
+  margin: 5px;
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+
+  > *:not(:first-child) {
+    margin-left: 5px;
+  }
+}
+
+.stop-point-traveller-tools-header {
+  width: 200px;
+  margin: 20px;
+
+  label {
+    font-weight: bold;
+    font-size: 1.3em;
+  }
+}
+
+.stop-point-traveller-tools-flux {
+  display: flex;
+  margin: 20px;
+
+  > span {
+    width: 200px;
+  }
+}
+
+.stop-point-traveller-tools {
+  flex-shrink: 20;
+  width: 20%;
+}
+
+.stop-point-traveller-tools-routes {
+  white-space: nowrap;
+  margin: 20px;
+  width: 80%;
+
+  label {
+    display: block;
+  }
+
+  span {
+    width: 100%;
+    overflow: hidden;
+    display: inline-block;
+    text-overflow: ellipsis;
+  }
+}
+
+.stop-point-traveller-tools-commands {
+  display: flex;
+  align-items: center;
+  margin: 15px 0 0 0;
+
+  button {
+    width: 30px;
+
+    i {
+      margin-top: 1px;
+    }
+  }
+}
+
+.stop-point-traveller-tools-time {
+  margin-left: 10px;
+  width: 60px;
+  font-size: 0.9em;
+}
+
+.stop-point-traveller-timezone-start, .stop-point-traveller-timezone-end {
+  stroke-width: 1px;
+  stroke: rgba(0, 0, 185, 0.4);
+
+}
+
+.stop-point-traveller-time-position {
+  stroke-width: 2px;
+  stroke: rgb(0, 0, 185);
+
+}

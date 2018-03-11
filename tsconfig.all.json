@@ -1,8 +1,7 @@
 {
-  "files": [
-    "./src/index.tsx"
-  ],
   "include": [
+    "./src/**/*.ts",
+    "./src/**/*.tsx",   
     "./typings/*"
   ],
   "compilerOptions": {

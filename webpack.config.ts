@@ -1,10 +1,15 @@
+import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as path from 'path';
 import * as webpack from 'webpack';
-import * as HtmlWebpackPlugin from 'html-webpack-plugin';
+import * as WebpackNotifierPlugin from 'webpack-notifier';
+import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
+import * as ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 
 const productionEnv = process.env.NODE_ENV === 'production';
 const developmentEnv = !productionEnv;
 const title = 'Train Status';
+const publicPath = process.env.PUBLIC_PATH || '/';
+const useCssSourceMap = false; // not yet ready to avoid the "Flash of Unstyled Content" effect
 
 let config: webpack.Configuration = {};
 
@@ -19,8 +24,6 @@ config.plugins = [
 ];
 
 if (developmentEnv) {
-  const WebpackNotifierPlugin = require('webpack-notifier');
-
   // add development-specific properties
   config = {
     ...config,
@@ -32,51 +35,85 @@ if (developmentEnv) {
       new webpack.HotModuleReplacementPlugin(),
 
       // prints more readable module names in the browser console on HMR updates
-      new webpack.NamedModulesPlugin()
-    ],
+      new webpack.NamedModulesPlugin(),
 
-    entry: [
-      // activate HMR for React
-      'react-hot-loader/patch'
+      new ForkTsCheckerWebpackPlugin(
+        {
+          tslint: false,
+          watch: [ './src' ]
+        }
+      )
     ],
 
     devServer: {
-      hot: true
+      hot: true,
+      historyApiFallback: {
+        rewrites: [
+          { from: '/favicon.ico', to: './nginx/assets/favicon.ico' },
+          {
+            from: '/assets/.+$',
+            to: (context: { parsedUrl: { pathname: string } }) => `./nginx${ context.parsedUrl.pathname }`
+          }
+        ]
+      }
     },
 
-    devtool: 'cheap-module-source-map'
+    devtool: 'cheap-module-eval-source-map'
   };
 }
-
 else {
   // add production-specific properties
   config = {
     ...config,
-    devtool: 'cheap-source-map'
+    plugins: [
+      ...config.plugins,
+      new ExtractTextPlugin({
+        filename: 'bundle-[hash].css'
+      })
+    ]
   };
 }
+
+const cssLoaders = [
+  {
+    loader: 'css-loader',
+    options: {
+      importLoaders: 2,
+      sourceMap: useCssSourceMap
+    }
+  },
+  {
+    loader: 'postcss-loader',
+    options: {
+      plugins: () => [
+        require('autoprefixer')({ browsers: [ 'last 1 version', 'ie >= 11' ] })
+      ],
+      sourceMap: useCssSourceMap
+    }
+  },
+  {
+    loader: 'sass-loader',
+    options: {
+      sourceMap: useCssSourceMap
+    }
+  }
+];
 
 // add common properties
 config = {
   ...config,
 
-  entry:
-    Array.isArray(config.entry)
-      ? [
-        ...config.entry,
-        './src/index.tsx'
-      ]
-      : './src/index.tsx',
+  entry: './src/index.tsx',
 
   output: {
     path: path.join(__dirname, '/dist/'),
     filename: 'bundle-[hash].js',
-    publicPath: '/'
+    publicPath
   },
 
   resolve: {
-    // Add '.ts' and '.tsx' as resolvable extensions.
-    extensions: [ '.ts', '.tsx', '.js', '.json' ]
+    // resolvable extensions.
+    extensions: [ '.ts', '.tsx', '.js' ]
   },
 
   module: {
@@ -84,9 +121,21 @@ config = {
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
       {
         test: /\.tsx?$/,
-        loaders: [
-          'react-hot-loader/webpack',
-          'awesome-typescript-loader'
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              babelrc: false,
+              plugins: [ 'react-hot-loader/babel' ]
+            }
+          },
+          {
+            loader: 'ts-loader',
+            options: {
+              // disable type checker - we will use it in fork plugin
+              transpileOnly: true
+            }
+          }
         ],
         exclude: /node-modules/
       },
@@ -94,25 +143,32 @@ config = {
       {
         enforce: 'pre',
         test: /\.js$/,
-        loader: 'source-map-loader'
+        use: 'source-map-loader',
+        exclude: [ /node_modules/, /dist/, /__test__/ ]
       },
       {
-        /**
-         * css-loader makes any urls within the project part of our dependency graph
-         * and the style-loader puts a style tag for the CSS in our HTML.
-         */
-        test: /\.scss$/,
-        use: [ 'style-loader', 'css-loader', 'sass-loader' ]
+        test: /\.s?css$/,
+        use: developmentEnv
+          ? [
+            'style-loader',
+            ...cssLoaders
+          ]
+          : ExtractTextPlugin.extract({
+            fallback: 'style-loader',
+            use: cssLoaders
+          })
       },
       {
-        test: /\.(jpe?g|png|gif|svg|pdf)$/i,
+        test: /\.(jpe?g|png|gif|woff|woff2|eot|ttf|svg|pdf)$/i,
         use: [
           {
             loader: 'file-loader',
             options: {
               hash: 'sha512',
               digest: 'hex',
-              name: 'assets/[name]-[hash].[ext]'
+              publicPath: path.join(publicPath, 'assets/'),
+              outputPath: 'assets/',
+              name: '[name]-[hash].[ext]'
             }
           }
         ]

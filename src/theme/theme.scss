@@ -1,3 +1,6 @@
+
+@import "./font-awesome/scss/font-awesome";
+
 * {
 //  box-sizing: border-box;
 }
@@ -5,7 +8,6 @@
 html, body, #root {
   padding: 0;
   margin: 0;
-  background-color: #fafafa;
 
   width: 100%;
   height: 100%;

@@ -1,14 +1,8 @@
 
-.marker {
-  //fill: node;
-  //stroke: black;
-  //stroke-width: 1.5px;
-}
-
-.marker:hover {
+.stop-point:hover {
   cursor: default;
 }
 
-.stations {
-  //    background-color: rgba(0,0,0,.5);
+.stop-point-selected {
+  fill: rgb(175, 8, 61);
 }

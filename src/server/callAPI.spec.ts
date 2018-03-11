@@ -21,7 +21,7 @@ describe('callAPI', () => {
       const URL = 'https://server.com/api/profile';
       const options = {
         method: 'POST',
-        body: {}
+        body: ''
       };
 
       const gen = callAPI_(URL, options);

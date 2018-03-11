@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import MapView from './MapViewContainer';
 import LineSelectorContainer from './LineSelectorContainer';
+import StopPointTravellerContainer from './StopPointTravellerContainer';
 
 export default () => {
   return (
@@ -10,6 +11,7 @@ export default () => {
       <div className="line-selector-host">
         <LineSelectorContainer/>
       </div>
+      <StopPointTravellerContainer />
     </div>
   );
 }

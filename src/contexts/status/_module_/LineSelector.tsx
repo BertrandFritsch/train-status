@@ -18,7 +18,7 @@ interface State {
 
 export default class StationSelector extends React.PureComponent<Props, State> {
   state = {
-    value: 'RER A'
+    value: ''
   };
 
   onChange = (newValue: string) => {
