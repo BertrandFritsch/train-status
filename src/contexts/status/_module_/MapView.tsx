@@ -114,7 +114,7 @@ function completeStopPointConnections(stopPointConnections: StopPointConnections
           duration: stop.duration,
           stepInWeight: stop.stepInWeight / stepInWeights
         })
-      ) ], []
+      ) ], [] as StopPointConnection[]
     )
   };
 }
@@ -141,13 +141,13 @@ interface StopPointConnection {
 class LineOverlayView extends google.maps.OverlayView {
 
   readonly _actions: OverlayActions;
-  _layerNode: Element | null;
+  _layerNode: SVGSVGElement | null = null;
   _bounds: google.maps.LatLngBounds;
 
   /**
    * an indicator whether the layer has been drawn, so it can be updated when the line data ot the stop points are updated
    */
-  _hasDrawn: boolean;
+  _hasDrawn: boolean = false;
 
   /**
    * The line data
@@ -162,7 +162,7 @@ class LineOverlayView extends google.maps.OverlayView {
   /**
    * The selected stop point
    */
-  _selectedStopPoint: StopPoint | null;
+  _selectedStopPoint: StopPoint | null = null;
 
   /**
    * The selected stop point connections
@@ -430,19 +430,24 @@ class LineOverlayView extends google.maps.OverlayView {
         }
       }
 
-      return {id, distance, coord};
+      return { id: id!, distance, coord: coord!};
     }
+
+    type TripDistance = {
+      distanceTotal: number;
+      trip: Array<{ geo: { id: string, distance: number, coord: number[]} } & TripStopPoint>
+    };
 
     /**
      * Completes the time slot train structure with the distance between 2 consecutive stop points
      */
-    function completeTrains(trains: TimeSlotTrain[]) {
+    function completeTrains(trains: TimeSlotTrain[]): TripDistance[] {
       return trains.map(train => {
         const trip = train.map((trip, i) => {
           return {
             ...trip,
             geo: distanceFromToStopPoint(completedStopPoints, trip, train[ i + 1 ])
-          }
+          };
         });
 
         return {
@@ -453,9 +458,9 @@ class LineOverlayView extends google.maps.OverlayView {
     }
 
     // the trains
-    const $trains = d3.select(this._layerNode)
-                      .select('.trains')
-                      .selectAll('.train')
+    const $trains = d3.select(this._layerNode!)
+                      .select<SVGGElement>('.trains')
+                      .selectAll<SVGCircleElement, TripDistance>('.train')
                       .data(this._timeSlotTrains === null ? [] : completeTrains(this._timeSlotTrains.trains), (d: { trip: { date: Date }[]}) => `${d.trip[ 0 ].date.toLocaleTimeString()}-${ d.trip.length }`);
 
     $trains.exit()
@@ -469,7 +474,7 @@ class LineOverlayView extends google.maps.OverlayView {
 
       const $updatingTrains = $trains
         .enter()
-        .append('circle')
+        .append<SVGCircleElement>('circle')
         .attr('class', 'train')
         .attr('fill', () => `#${this._lineData.data.color}`)
         .merge($trains);
@@ -648,18 +653,23 @@ class LineOverlayView extends google.maps.OverlayView {
     const projection = this.getProjection();
     const layerCoords = this.getLayerCoords();
 
+    interface ConnectionTrain {
+      connection: StopPointConnection;
+      train: StopPointConnectionTrain & { pendingConnections: number }
+    }
+
     function completeConnectionTrains(stopPointConnections: StopPointConnection[], stopPointConnectionTrains: StopPointConnectionTrain[], timePosition: Date | null) {
       return stopPointConnectionTrains.reduce((acc, t) => {
         const pendingConnections = stopPointConnections.filter(c =>  Math.max(0, (timePosition ? timePosition.getTime() : t.startTime.getTime()) - t.startTime.getTime()) < c.duration * 60 * 1000);
         const ct = { ...t, pendingConnections: pendingConnections.length };
         return [ ...acc, ...pendingConnections.map(c => ({ connection: c, train: ct })) ]
-      }, []);
+      }, [] as ConnectionTrain[]);
     }
 
     const $connectionTrains = d3.select(this._layerNode)
-                                .select('.stop-point-connection-trains')
-                                .selectAll('.stop-point-connection-train')
-                                .data(completeConnectionTrains(this._stopPointConnections.connections, this._stopPointConnectionTrains, this._timePosition), (d : { connection: StopPointConnection, train: StopPointConnectionTrain }) => `${d.connection.id}${d.train.stopPointId}-${d.train.tripId}`);
+                                .select<SVGGElement>('.stop-point-connection-trains')
+                                .selectAll<SVGCircleElement, ConnectionTrain>('.stop-point-connection-train')
+                                .data(completeConnectionTrains(this._stopPointConnections.connections, this._stopPointConnectionTrains, this._timePosition), d => `${d.connection.id}${d.train.stopPointId}-${d.train.tripId}`);
 
     $connectionTrains.exit()
                      .interrupt()
@@ -671,7 +681,7 @@ class LineOverlayView extends google.maps.OverlayView {
 
       const $newConnectionTrains = $connectionTrains
         .enter()
-        .append('circle')
+        .append<SVGCircleElement>('circle')
         .attr('class', 'stop-point-connection-train')
         .attr('fill', d => `#${d.connection.color}`)
         .attr('r', d => STOP_POINTS_RAYON + (d.connection.stepInWeight * d.train.stepOut) * (STOP_POINTS_RAYON * 6 - STOP_POINTS_RAYON) / 2000);
@@ -730,10 +740,10 @@ class LineOverlayView extends google.maps.OverlayView {
   onAdd() {
     if (!this._layerNode) {
       const layer = d3.select(this.getPanes().overlayMouseTarget)
-                      .append('svg')
+                      .append<SVGSVGElement>('svg')
                       .attr('class', 'stations');
 
-      this._layerNode = layer.node() as Element;
+      this._layerNode = layer.node();
 
       layer
         .append('defs').append('marker')
@@ -792,8 +802,8 @@ function createOverlay(map: google.maps.Map, actions: OverlayActions) {
 }
 
 export default class MapView extends React.PureComponent<Props> {
-  _map: google.maps.Map;
-  _overlay: LineOverlayView | null;
+  _map: google.maps.Map | null = null;
+  _overlay: LineOverlayView | null = null;
 
   renderChart = (node: HTMLElement) => {
 

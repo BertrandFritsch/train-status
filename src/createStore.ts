@@ -2,11 +2,8 @@ import { applyMiddleware, combineReducers, compose, createStore, Store as ReduxS
 import createSagaMiddleware from 'redux-saga';
 
 import { StatusState } from './contexts/status';
-import { LoginState } from './contexts/login';
 import statusReducers from './contexts/status/_module_/reducers';
-import loginReducers from './contexts/login/_module_/reducers';
 import statusSagas from './contexts/status/_module_/sagas';
-import loginSagas from './contexts/login/_module_/sagas';
 
 const nodeProcess = typeof process !== 'undefined' && process;
 const isTestEnv = nodeProcess && nodeProcess.env.NODE_ENV === 'test';
@@ -30,14 +27,13 @@ const finalCreateStore = !isTestEnv ? composeEnhancers(
 /**
  * Create the redux store
  */
-export type Store = ReduxStore<LoginState & StatusState>;
-const store: Store = finalCreateStore(combineReducers({ ...loginReducers, ...statusReducers }));
+export type Store = ReduxStore<StatusState>;
+const store: Store = finalCreateStore(combineReducers({ ...statusReducers }));
 
 /**
  * Start the sagas
  */
 if (!isTestEnv) {
-  sagaMiddleware.run(loginSagas);
   sagaMiddleware.run(statusSagas);
 }
 

@@ -32,6 +32,12 @@ const STOP_POINT_VRD = {
   coord: [ 48.805493, 2.16852 ]
 };
 
+const STOP_POINT_LDF = {
+  id: 'stop_point:OIF:SP:8738221:800:L',
+  name: 'Gare de la Défense',
+  coord: [ 48.892187, 2.237018 ]
+};
+
 // character-typed put function
 const statusActionPut = (action: StatusAction): PutEffect<StatusAction> => put(action);
 const statusActionTake = <StatusAction>(pattern: ActionTypes | ActionTypes[]): TakeEffect => take(pattern);
@@ -223,11 +229,11 @@ function* loadStopPointConnection() {
 
 function* initStatus() {
   yield statusActionPut({type: ActionTypes.SUGGESTION_LINE_REQUESTED, payload: line});
-  yield statusActionPut({type: ActionTypes.STOP_POINT_SELECTED, payload: STOP_POINT_VRD});
+  yield statusActionPut({type: ActionTypes.STOP_POINT_SELECTED, payload: STOP_POINT_LDF});
   const now = new Date();
   yield statusActionPut({
     type: ActionTypes.TIMESLOT_SELECTED,
-    payload: [ new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 55), new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 15) ]
+    payload: [ new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 55), new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 15) ]
   });
 
   const routes = (yield statusActionTake(ActionTypes.STOP_POINT_ROUTES_LOADED)).payload;
@@ -245,7 +251,7 @@ export default function* () {
     call(loadLineData),
     call(loadStopPoints),
     call(loadStopPointRoutes),
-    call(loadStopPointConnection) //,
-    //call(initStatus)
+    call(loadStopPointConnection),
+    call(initStatus)
   ];
 }

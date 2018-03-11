@@ -30,6 +30,7 @@ import {
 
 import 'react-datepicker/dist/react-datepicker.css';
 import './StopPointTraveller.scss';
+import { ScaleTime } from 'd3-scale';
 
 interface Props {
   selectedStopPoint: SelectedStopPoint;
@@ -80,7 +81,7 @@ function formatTimeSlotDate(date: Date) {
   return date.toLocaleTimeString('fr', {hour: '2-digit', minute: '2-digit'});
 }
 
-export default class StopPointTraveller extends React.PureComponent<Props> {
+export default class StopPointTraveller extends React.Component<Props> {
 
   timePositionElement: HTMLSpanElement | null = null;
   timingTicker = 0;
@@ -132,7 +133,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       // create the static structure if it doesn't exist yet
 
       const $svg = d3.select(node)
-                     .append('svg')
+                     .append<SVGSVGElement>('svg')
                      .attr('viewBox', `0 0 ${width} ${height}`);
 
       const $defs = $svg.append("defs");
@@ -154,7 +155,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
            .attr('transform', `translate(-${ barWidth / 2 }, -${height - pad})`);
 
       // zooming and panning: create the zoom behavior
-      const zoom = d3.zoom()
+      const zoom = d3.zoom<SVGGElement, any>()
                      .scaleExtent([ 1, 24 ])
                      .translateExtent([ [ pad, 0 ], [ width - 2 * pad + barWidth, 0 ] ])
                      .extent([ [ pad, 0 ], [ width - 2 * pad + barWidth, 0 ] ])
@@ -181,19 +182,19 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                         // only interested in user-initiated events
                         if (this.chartState.brushMoving || d3.event.selection === null) return;
 
-                        const scale = d3.zoomTransform($dataGroup.node() as SVGElement).rescaleX(xScale as any);
+                        const scale = d3.zoomTransform($dataGroup.node()!).rescaleX(xScale as any);
                         const selectedZone = (d3.event.selection as [ number, number ]).map((v: number) => scale.invert(v)) as [ Date, Date ];
 
                         this.props.timeSlotSelected(selectedZone);
                       });
 
-      const $dataGroup = $svg.append('g')
+      const $dataGroup = $svg.append<SVGGElement>('g')
                              .attr('class', 'stop-point-traveller-data')
                              .attr('clip-path', 'url(#clip-data)')
 
                              // zooming and panning: the pan gesture is attached to the x-wheel event
                              .on('wheel.pan', () => {
-                               zoom.translateBy($dataGroup as any, -d3.event.deltaX * (d3.event.deltaMode ? 120 : 1) / 10, 0);
+                               zoom.translateBy($dataGroup, -d3.event.deltaX * (d3.event.deltaMode ? 120 : 1) / 10, 0);
                              })
 
                              // zooming and panning: the event is attached to the ancestor of the bars
@@ -237,8 +238,8 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
 
     const chartUpdate = () => {
 
-      const $dataGroup = d3.select('g.stop-point-traveller-data');
-      const zoomTransform = d3.zoomTransform($dataGroup.node() as SVGElement);
+      const $dataGroup = d3.select<SVGGElement, any>('g.stop-point-traveller-data');
+      const zoomTransform = d3.zoomTransform($dataGroup.node()!);
 
       const trips = stepInByPeriod(selectedTrips, zScale(zoomTransform.k));
 
@@ -247,7 +248,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       // apply the transformation of the x-axis
       const xZoomedScale = zoomTransform.rescaleX(xScale as any);
 
-      const xAxis = d3.axisBottom(xZoomedScale)
+      const xAxis = d3.axisBottom<Date>(xZoomedScale)
                       .tickFormat(d3.timeFormat('%H:%M'));
 
       const yScale = d3.scaleLinear()
@@ -259,13 +260,13 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
                       .tickSize(-width)
                       .tickFormat(function(d, i) { return (`${d}${i === arguments[2].length - 1 ? ' voyageurs' : ''}`) });
 
-      $svg.select('g.stop-point-traveller-axis-x')
+      $svg.select<SVGGElement>('g.stop-point-traveller-axis-x')
           .call(xAxis)
           .call(($g: any) => {
             $g.select('.domain').remove();
           });
 
-      $svg.select('g.stop-point-traveller-axis-y')
+      $svg.select<SVGGElement>('g.stop-point-traveller-axis-y')
           .call(yAxis)
           .call($g => {
             $g.select('.domain').remove();
@@ -275,16 +276,16 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
           });
 
       let $$bars = $dataGroup
-        .select('.stop-point-traveller-data-bars')
-        .selectAll('rect.stop-point-traveller-data-bar')
-        .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+        .select<SVGGElement>('.stop-point-traveller-data-bars')
+        .selectAll<SVGRectElement, StepInByPeriod>('rect.stop-point-traveller-data-bar')
+        .data(trips, d => d.date.toTimeString());
 
       // cancel any former ongoing transition
       $$bars.interrupt();
 
       // creation of the bars
       $$bars.enter()
-            .append('rect')
+            .append<SVGRectElement>('rect')
             .attr('class', 'stop-point-traveller-data-bar')
             .attr('x', d => xZoomedScale(d.date))
             .attr('y', yScale(0))
@@ -299,8 +300,8 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
             .attr('y', d => yScale(d.stepIn))
             .attr('height', d => yScale(0) - yScale(d.stepIn));
 
-      $$bars = $dataGroup.selectAll('rect.stop-point-traveller-data-bar')
-                         .data(trips, (d: StepInByPeriod) => d.date.toTimeString());
+      $$bars = $dataGroup.selectAll<SVGRectElement, StepInByPeriod>('rect.stop-point-traveller-data-bar')
+                         .data(trips, d => d.date.toTimeString());
 
       $$bars.select('title')
             .remove();
@@ -316,7 +317,7 @@ export default class StopPointTraveller extends React.PureComponent<Props> {
       if (brush) {
         try {
           this.chartState.brushMoving = true;
-          brush.move($dataGroup as any, this.props.selectedStopPoint.timeSlot && this.props.selectedStopPoint.timeSlot.map(d => xZoomedScale(d)) as d3.BrushSelection);
+          brush.move($dataGroup, this.props.selectedStopPoint.timeSlot && this.props.selectedStopPoint.timeSlot.map(d => xZoomedScale(d)) as d3.BrushSelection);
         }
         finally {
           this.chartState.brushMoving = false;
