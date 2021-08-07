@@ -29,7 +29,7 @@
     "react-datepicker": "^1.2.2",
     "react-dock": "^0.2.4",
     "react-dom": "^16.2.0",
-    "react-redux": "^5.0.7",
+    "react-redux": "^5.1.2",
     "redux": "^3.7.1",
     "redux-saga": "^0.16.0",
     "reselect": "^3.0.1"
