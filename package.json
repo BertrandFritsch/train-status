@@ -25,7 +25,7 @@
     "d3": "^4.10.2",
     "moment": "^2.18.1",
     "react": "^16.2.0",
-    "react-autosuggest": "^9.3.4",
+    "react-autosuggest": "^9.4.3",
     "react-datepicker": "^1.2.2",
     "react-dock": "^0.2.4",
     "react-dom": "^16.2.0",
