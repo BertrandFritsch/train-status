@@ -22,7 +22,7 @@
     "tsc": "tsc -p ./tsconfig.all.json --noEmit --pretty"
   },
   "dependencies": {
-    "d3": "^4.10.2",
+    "d3": "^7.0.0",
     "moment": "^2.18.1",
     "react": "^16.2.0",
     "react-autosuggest": "^9.3.4",
