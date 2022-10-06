@@ -19,20 +19,23 @@
     "lint": "tslint -c tslint.json 'src/**/*.{ts,tsx}'",
     "test:unit:watch": "NODE_ENV=test jest --watch",
     "test:unit": "NODE_ENV=test jest --coverage --coverageReporters lcov",
-    "tsc": "tsc -p ./tsconfig.all.json --noEmit --pretty"
+    "tsc": "tsc -p ./tsconfig.all.json --noEmit --pretty",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "dependencies": {
-    "d3": "^4.10.2",
-    "moment": "^2.18.1",
-    "react": "^16.2.0",
+    "d3": "^7.0.0",
+    "moment": "^2.29.4",
+    "react": "^16.5.0",
     "react-autosuggest": "^9.3.4",
     "react-datepicker": "^1.2.2",
     "react-dock": "^0.2.4",
-    "react-dom": "^16.2.0",
+    "react-dom": "^16.5.0",
     "react-redux": "^5.0.7",
     "redux": "^3.7.1",
     "redux-saga": "^0.16.0",
-    "reselect": "^3.0.1"
+    "reselect": "^3.0.1",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/d3": "^5.0.0",
@@ -115,5 +118,6 @@
       "src/{contexts}/**/*.{ts,tsx}",
       "!src/{contexts}/**/*.spec.{ts,tsx}"
     ]
-  }
+  },
+  "snyk": true
 }
