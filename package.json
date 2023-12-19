@@ -28,7 +28,7 @@
     "react-autosuggest": "^9.3.4",
     "react-datepicker": "^1.2.2",
     "react-dock": "^0.2.4",
-    "react-dom": "^16.2.0",
+    "react-dom": "^16.2.1",
     "react-redux": "^5.0.7",
     "redux": "^3.7.1",
     "redux-saga": "^0.16.0",
